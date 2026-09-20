@@ -1,0 +1,291 @@
+package com.fintap.digikadai.config;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+@ConfigurationProperties(prefix = "integrations")
+public class IntegrationProperties {
+
+    private final Ondc ondc = new Ondc();
+    private final Mastercard mastercard = new Mastercard();
+
+    public Ondc getOndc() {
+        return ondc;
+    }
+
+    public Mastercard getMastercard() {
+        return mastercard;
+    }
+
+    public static class Ondc {
+        private boolean enabled;
+        private String subscriberId = "";
+        private String uniqueKeyId = "ukid-1";
+        private String subscriberUrl = "";
+        private String signingPrivateKey = "";
+        private String signingPublicKey = "";
+        private String encryptionPrivateKey = "";
+        private String registryUrl = "";
+        private String gatewayUrl = "";
+        private String mockBppUrl = "";
+        private String domain = "ONDC:RET10";
+        private String city = "std:080";
+        private String coreVersion = "1.2.0";
+        private String bppId = "";
+        private String bppUri = "";
+        private String country = "IND";
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getSubscriberId() {
+            return subscriberId;
+        }
+
+        public void setSubscriberId(String subscriberId) {
+            this.subscriberId = subscriberId;
+        }
+
+        public String getUniqueKeyId() {
+            return uniqueKeyId;
+        }
+
+        public void setUniqueKeyId(String uniqueKeyId) {
+            this.uniqueKeyId = uniqueKeyId;
+        }
+
+        public String getSubscriberUrl() {
+            return subscriberUrl;
+        }
+
+        public void setSubscriberUrl(String subscriberUrl) {
+            this.subscriberUrl = subscriberUrl;
+        }
+
+        public String getSigningPrivateKey() {
+            return signingPrivateKey;
+        }
+
+        public void setSigningPrivateKey(String signingPrivateKey) {
+            this.signingPrivateKey = signingPrivateKey;
+        }
+
+        public String getSigningPublicKey() {
+            return signingPublicKey;
+        }
+
+        public void setSigningPublicKey(String signingPublicKey) {
+            this.signingPublicKey = signingPublicKey;
+        }
+
+        public String getEncryptionPrivateKey() {
+            return encryptionPrivateKey;
+        }
+
+        public void setEncryptionPrivateKey(String encryptionPrivateKey) {
+            this.encryptionPrivateKey = encryptionPrivateKey;
+        }
+
+        public String getRegistryUrl() {
+            return registryUrl;
+        }
+
+        public void setRegistryUrl(String registryUrl) {
+            this.registryUrl = registryUrl;
+        }
+
+        public String getGatewayUrl() {
+            return gatewayUrl;
+        }
+
+        public void setGatewayUrl(String gatewayUrl) {
+            this.gatewayUrl = gatewayUrl;
+        }
+
+        public String getMockBppUrl() {
+            return mockBppUrl;
+        }
+
+        public void setMockBppUrl(String mockBppUrl) {
+            this.mockBppUrl = mockBppUrl;
+        }
+
+        public String getDomain() {
+            return domain;
+        }
+
+        public void setDomain(String domain) {
+            this.domain = domain;
+        }
+
+        public String getCity() {
+            return city;
+        }
+
+        public void setCity(String city) {
+            this.city = city;
+        }
+
+        public String getCoreVersion() {
+            return coreVersion;
+        }
+
+        public void setCoreVersion(String coreVersion) {
+            this.coreVersion = coreVersion;
+        }
+
+        public String getBppId() {
+            return bppId == null || bppId.isBlank() ? subscriberId : bppId;
+        }
+
+        public void setBppId(String bppId) {
+            this.bppId = bppId;
+        }
+
+        public String getBppUri() {
+            return bppUri == null || bppUri.isBlank() ? subscriberUrl : bppUri;
+        }
+
+        public void setBppUri(String bppUri) {
+            this.bppUri = bppUri;
+        }
+
+        public String getCountry() {
+            return country;
+        }
+
+        public void setCountry(String country) {
+            this.country = country;
+        }
+
+        public boolean keysReady() {
+            return signingPrivateKey != null && !signingPrivateKey.isBlank()
+                    && subscriberId != null && !subscriberId.isBlank();
+        }
+    }
+
+    public static class Mastercard {
+        private boolean gatewayEnabled;
+        private String gatewayBaseUrl = "https://test-gateway.mastercard.com";
+        private String merchantId = "";
+        private String apiPassword = "";
+        private String apiVersion = "100";
+        private String currency = "INR";
+        private boolean developersEnabled;
+        private String developersBaseUrl = "https://sandbox.api.mastercard.com";
+        private String consumerKey = "";
+        private String keystorePath = "";
+        private String keystorePassword = "";
+        private String keyAlias = "";
+
+        public boolean isGatewayEnabled() {
+            return gatewayEnabled;
+        }
+
+        public void setGatewayEnabled(boolean gatewayEnabled) {
+            this.gatewayEnabled = gatewayEnabled;
+        }
+
+        public String getGatewayBaseUrl() {
+            return gatewayBaseUrl;
+        }
+
+        public void setGatewayBaseUrl(String gatewayBaseUrl) {
+            this.gatewayBaseUrl = gatewayBaseUrl;
+        }
+
+        public String getMerchantId() {
+            return merchantId;
+        }
+
+        public void setMerchantId(String merchantId) {
+            this.merchantId = merchantId;
+        }
+
+        public String getApiPassword() {
+            return apiPassword;
+        }
+
+        public void setApiPassword(String apiPassword) {
+            this.apiPassword = apiPassword;
+        }
+
+        public String getApiVersion() {
+            return apiVersion;
+        }
+
+        public void setApiVersion(String apiVersion) {
+            this.apiVersion = apiVersion;
+        }
+
+        public String getCurrency() {
+            return currency;
+        }
+
+        public void setCurrency(String currency) {
+            this.currency = currency;
+        }
+
+        public boolean isDevelopersEnabled() {
+            return developersEnabled;
+        }
+
+        public void setDevelopersEnabled(boolean developersEnabled) {
+            this.developersEnabled = developersEnabled;
+        }
+
+        public String getDevelopersBaseUrl() {
+            return developersBaseUrl;
+        }
+
+        public void setDevelopersBaseUrl(String developersBaseUrl) {
+            this.developersBaseUrl = developersBaseUrl;
+        }
+
+        public String getConsumerKey() {
+            return consumerKey;
+        }
+
+        public void setConsumerKey(String consumerKey) {
+            this.consumerKey = consumerKey;
+        }
+
+        public String getKeystorePath() {
+            return keystorePath;
+        }
+
+        public void setKeystorePath(String keystorePath) {
+            this.keystorePath = keystorePath;
+        }
+
+        public String getKeystorePassword() {
+            return keystorePassword;
+        }
+
+        public void setKeystorePassword(String keystorePassword) {
+            this.keystorePassword = keystorePassword;
+        }
+
+        public String getKeyAlias() {
+            return keyAlias;
+        }
+
+        public void setKeyAlias(String keyAlias) {
+            this.keyAlias = keyAlias;
+        }
+
+        public boolean gatewayReady() {
+            return gatewayEnabled && merchantId != null && !merchantId.isBlank()
+                    && apiPassword != null && !apiPassword.isBlank();
+        }
+
+        public boolean developersReady() {
+            return developersEnabled && consumerKey != null && !consumerKey.isBlank()
+                    && keystorePath != null && !keystorePath.isBlank();
+        }
+    }
+}

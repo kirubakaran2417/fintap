@@ -1,0 +1,59 @@
+spring:
+  application:
+    name: digi-kadai
+  datasource:
+    url: jdbc:h2:file:./data/fintap;DB_CLOSE_DELAY=-1;AUTO_SERVER=TRUE;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  h2:
+    console:
+      enabled: true
+      path: /h2
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+server:
+  port: 8080
+
+app:
+  bank-name: ABC Bank
+  product-name: Digi Kadai
+  demo-pin: "1234"
+
+integrations:
+  ondc:
+    enabled: ${ONDC_ENABLED:false}
+    subscriber-id: ${ONDC_SUBSCRIBER_ID:}
+    unique-key-id: ${ONDC_UNIQUE_KEY_ID:ukid-1}
+    subscriber-url: ${ONDC_SUBSCRIBER_URL:http://localhost:8080/protocol/v1}
+    signing-private-key: ${ONDC_SIGNING_PRIVATE_KEY:}
+    signing-public-key: ${ONDC_SIGNING_PUBLIC_KEY:}
+    encryption-private-key: ${ONDC_ENCRYPTION_PRIVATE_KEY:}
+    registry-url: ${ONDC_REGISTRY_URL:https://preprod.registry.ondc.org}
+    gateway-url: ${ONDC_GATEWAY_URL:https://preprod.gateway.ondc.org}
+    mock-bpp-url: ${ONDC_MOCK_BPP_URL:https://mock.ondc.org/api/b2b/bpp}
+    domain: ${ONDC_DOMAIN:ONDC:RET10}
+    city: ${ONDC_CITY:std:080}
+    core-version: "1.2.0"
+    bpp-id: ${ONDC_BPP_ID:}
+    bpp-uri: ${ONDC_BPP_URI:http://localhost:8080/protocol/v1}
+    country: IND
+  mastercard:
+    gateway-enabled: ${MC_GATEWAY_ENABLED:false}
+    gateway-base-url: ${MC_GATEWAY_URL:https://test-gateway.mastercard.com}
+    merchant-id: ${MC_MERCHANT_ID:}
+    api-password: ${MC_API_PASSWORD:}
+    api-version: ${MC_API_VERSION:100}
+    currency: INR
+    developers-enabled: ${MC_DEV_ENABLED:false}
+    developers-base-url: ${MC_DEV_BASE_URL:https://sandbox.api.mastercard.com}
+    consumer-key: ${MC_CONSUMER_KEY:}
+    keystore-path: ${MC_KEYSTORE_PATH:}
+    keystore-password: ${MC_KEYSTORE_PASSWORD:}
+    key-alias: ${MC_KEY_ALIAS:}
