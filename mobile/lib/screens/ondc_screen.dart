@@ -16,9 +16,12 @@ class OndcScreen extends StatefulWidget {
 class _OndcScreenState extends State<OndcScreen> {
   List<dynamic> orders = [];
   List<dynamic> catalog = [];
+  List<dynamic> buyers = [];
   Map<String, dynamic>? status;
   final barcode = TextEditingController(text: '8901725111924');
   final hint = TextEditingController(text: 'Detergent from shelf photo');
+  final buyerName = TextEditingController();
+  final orderAmount = TextEditingController(text: '250');
   bool busy = false;
   bool loading = true;
   String? error;
@@ -27,6 +30,8 @@ class _OndcScreenState extends State<OndcScreen> {
   void dispose() {
     barcode.dispose();
     hint.dispose();
+    buyerName.dispose();
+    orderAmount.dispose();
     super.dispose();
   }
 
@@ -41,11 +46,13 @@ class _OndcScreenState extends State<OndcScreen> {
       final loadedOrders = await api.ondcOrders();
       final loadedCatalog = await api.catalog();
       final loadedStatus = await api.integrationStatus();
+      final loadedCustomers = await api.customers();
       if (!mounted) return;
       setState(() {
         orders = loadedOrders;
         catalog = loadedCatalog;
         status = loadedStatus['ondc'] as Map<String, dynamic>?;
+        buyers = loadedCustomers.where((item) => item is Map && (item['source'] == 'ONDC' || '${item['token']}'.startsWith('ondc:'))).toList();
         error = null;
       });
     } catch (e) {
@@ -53,6 +60,49 @@ class _OndcScreenState extends State<OndcScreen> {
       setState(() => error = '$e');
     } finally {
       if (mounted) setState(() => loading = false);
+    }
+  }
+
+  Future<void> _connectDev() async {
+    setState(() => busy = true);
+    try {
+      final result = await api.connectOndcDev();
+      await _load();
+      if (!mounted) return;
+      final created = result['customersCreated'] ?? 0;
+      final pingOk = result['pingOk'] == true;
+      final fromNetwork = result['fromNetwork'] == true;
+      final message = fromNetwork
+          ? 'Loaded $created buyers from ONDC sandbox'
+          : pingOk
+              ? 'Sandbox reached. Loaded $created demo ONDC buyers'
+              : 'Sandbox unreachable. Loaded $created demo ONDC buyers for the pitch';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    } catch (exception) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$exception')));
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  Future<void> _addCustomer() async {
+    final name = buyerName.text.trim();
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter a customer or buyer-app name')));
+      return;
+    }
+    setState(() => busy = true);
+    try {
+      final parsed = double.tryParse(orderAmount.text.trim());
+      await api.addOndcCustomer(name, amount: parsed != null && parsed >= 1 ? parsed : null);
+      buyerName.clear();
+      await _load();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$name added to ONDC')));
+    } catch (exception) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$exception')));
+    } finally {
+      if (mounted) setState(() => busy = false);
     }
   }
 
@@ -117,7 +167,7 @@ class _OndcScreenState extends State<OndcScreen> {
             child: Row(children: [
               SummaryMetric(value: '${orders.length}', label: 'Orders'),
               SummaryMetric(value: '${catalog.length}', label: 'Products'),
-              SummaryMetric(value: '${catalog.where((item) => item['publishedToOndc'] == true).length}', label: 'Published'),
+              SummaryMetric(value: '${buyers.length}', label: 'ONDC buyers'),
             ]),
           ),
           const Material(color: Colors.white, child: TabBar(
@@ -186,13 +236,47 @@ class _OndcScreenState extends State<OndcScreen> {
                     Text(
                       live
                           ? 'Signed /search is enabled for ${status?['subscriberId']}'
-                          : 'Set ONDC_ENABLED and subscriber keys, then ping the mock BPP.',
+                          : 'Connect ONDC sandbox to pull buyer apps in as demo customers.',
                       style: const TextStyle(color: FtColors.muted, fontSize: 12),
+                    ),
+                    const SizedBox(height: 12),
+                    ExpansionTile(
+                      initiallyExpanded: true,
+                      tilePadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.person_add_alt_1, color: FtColors.purple),
+                      title: const Text('Add ONDC customer', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                      subtitle: const Text('Creates a buyer profile and a new ONDC order', style: TextStyle(fontSize: 11, color: FtColors.muted)),
+                      children: [
+                        TextField(
+                          controller: buyerName,
+                          textCapitalization: TextCapitalization.words,
+                          decoration: const InputDecoration(labelText: 'Customer or buyer app', prefixIcon: Icon(Icons.person_outline)),
+                        ),
+                        const SizedBox(height: 10),
+                        TextField(
+                          controller: orderAmount,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: const InputDecoration(labelText: 'Order amount (₹)', prefixIcon: Icon(Icons.currency_rupee)),
+                        ),
+                        const SizedBox(height: 10),
+                        FilledButton.icon(
+                          onPressed: busy ? null : _addCustomer,
+                          icon: const Icon(Icons.add, size: 18),
+                          label: Text(busy ? 'Adding...' : 'Add to ONDC'),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
                     ),
                     const SizedBox(height: 12),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        FilledButton.icon(
+                          onPressed: busy ? null : _connectDev,
+                          icon: const Icon(Icons.cloud_sync_outlined, size: 18),
+                          label: Text(busy ? 'Connecting...' : 'Connect ONDC sandbox'),
+                        ),
+                        const SizedBox(height: 8),
                         FilledButton.tonal(
                           onPressed: () => _toast(api.pingOndc(), 'Mock BPP /search reached'),
                           child: const Text('Ping sandbox'),
@@ -218,6 +302,20 @@ class _OndcScreenState extends State<OndcScreen> {
                         ),
                       ],
                     ),
+                    if (buyers.isNotEmpty) ...[
+                      const SizedBox(height: 20),
+                      const Text('Demo ONDC buyers', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+                      const SizedBox(height: 8),
+                      ...buyers.map((item) {
+                        final map = item as Map<String, dynamic>;
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.storefront_outlined, color: FtColors.purple),
+                          title: Text('${map['displayName']}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                          subtitle: Text('ONDC buyer · ${inr.format(asNum(map['lifetimeSpend']))}', style: const TextStyle(fontSize: 11, color: FtColors.muted)),
+                        );
+                      }),
+                    ],
                   ],
                 ),
             ),

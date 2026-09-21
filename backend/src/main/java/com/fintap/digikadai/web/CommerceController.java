@@ -85,4 +85,12 @@ public class CommerceController {
     public List<CustomerProfileDto> customers(@ModelAttribute Merchant merchant) {
         return commerce.customers(merchant);
     }
+
+    @PostMapping("/ondc/customers")
+    public CustomerProfileDto addOndcCustomer(
+            @ModelAttribute Merchant merchant,
+            @Valid @RequestBody CustomerProfileDto.CreateRequest request
+    ) {
+        return commerce.addOndcCustomer(merchant, request);
+    }
 }

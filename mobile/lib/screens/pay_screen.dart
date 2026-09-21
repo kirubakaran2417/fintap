@@ -28,7 +28,7 @@ class _PayScreenState extends State<PayScreen> {
   @override
   void initState() {
     super.initState();
-    api.integrationStatus().then((status) {
+    api.integrationStatus().then((status) async {
       final rzp = status['razorpay'] as Map<String, dynamic>? ?? {};
       final mc = status['mastercardGateway'] as Map<String, dynamic>? ?? {};
       final tapReady = await tapOnPhone.isAvailable();
