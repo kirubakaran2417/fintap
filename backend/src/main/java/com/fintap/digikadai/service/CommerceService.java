@@ -1,6 +1,7 @@
 package com.fintap.digikadai.service;
 
 import com.fintap.digikadai.domain.CatalogItem;
+import com.fintap.digikadai.domain.CustomerProfile;
 import com.fintap.digikadai.domain.KhataEntry;
 import com.fintap.digikadai.domain.Merchant;
 import com.fintap.digikadai.domain.OndcOrder;
@@ -285,8 +286,63 @@ public class CommerceService {
 
     public List<CustomerProfileDto> customers(Merchant merchant) {
         return profiles.findByMerchantOrderByLifetimeSpendDesc(merchant).stream()
-                .map(p -> new CustomerProfileDto(p.getToken(), p.getDisplayName(), p.getVisitCount(), p.getLifetimeSpend(), p.getChurnRisk()))
+                .map(this::toCustomer)
                 .toList();
+    }
+
+    public CustomerProfileDto addOndcCustomer(Merchant merchant, CustomerProfileDto.CreateRequest request) {
+        String name = request.displayName().trim();
+        String slug = name.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-");
+        if (slug.endsWith("-")) {
+            slug = slug.substring(0, slug.length() - 1);
+        }
+        if (slug.isBlank()) {
+            slug = "buyer";
+        }
+        String token = "ondc:" + slug;
+        int suffix = 1;
+        while (profiles.findByMerchantAndToken(merchant, token).isPresent()) {
+            token = "ondc:" + slug + "-" + (++suffix);
+        }
+        BigDecimal spend = request.amount() == null ? new BigDecimal("100.00") : request.amount();
+        CustomerProfile profile = new CustomerProfile();
+        profile.setMerchant(merchant);
+        profile.setToken(token);
+        profile.setDisplayName(name);
+        profile.setVisitCount(1);
+        profile.setLifetimeSpend(spend);
+        profile.setChurnRisk(0.15);
+        profile.setLastVisit(Instant.now());
+        profiles.save(profile);
+
+        String basket = catalog.findByMerchantOrderByNameAsc(merchant).stream()
+                .filter(CatalogItem::isPublishedToOndc)
+                .limit(2)
+                .map(CatalogItem::getName)
+                .reduce((left, right) -> left + " + " + right)
+                .orElse("ONDC grocery basket");
+        OndcOrder order = new OndcOrder();
+        order.setMerchant(merchant);
+        order.setOrderRef("ONDC-ADD-" + Integer.toHexString(token.hashCode()).toUpperCase());
+        order.setBuyerApp(name);
+        order.setItemsSummary(basket);
+        order.setAmount(spend);
+        order.setStatus(OndcOrderStatus.NEW);
+        order.setCreatedAt(Instant.now());
+        order.setUpdatedAt(Instant.now());
+        orders.save(order);
+        return toCustomer(profile);
+    }
+
+    private CustomerProfileDto toCustomer(CustomerProfile p) {
+        return new CustomerProfileDto(
+                p.getToken(),
+                p.getDisplayName(),
+                p.getVisitCount(),
+                p.getLifetimeSpend(),
+                p.getChurnRisk(),
+                p.getToken() != null && p.getToken().startsWith("ondc:") ? "ONDC" : "CARD"
+        );
     }
 
     private String body(com.fintap.digikadai.domain.Insight insight, String lang) {

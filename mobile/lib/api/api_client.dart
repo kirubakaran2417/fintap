@@ -106,6 +106,8 @@ class ApiClient {
 
   Future<Map<String, dynamic>> pingOndc() => _post('/api/integrations/ondc/ping', {});
 
+  Future<Map<String, dynamic>> connectOndcDev() => _post('/api/integrations/ondc/connect-dev', {});
+
   Future<Map<String, dynamic>> lookupOndc() => _post('/api/integrations/ondc/lookup', {});
 
   Future<Map<String, dynamic>> goLive() => _post('/api/integrations/go-live', {});
@@ -148,8 +150,11 @@ class ApiClient {
 
   Future<List<dynamic>> customers() => _getList('/api/customers');
 
-  Future<Map<String, dynamic>> nudgeWhatsapp(Map<String, dynamic> payload) =>
-      _post('/api/nudge/whatsapp', payload);
+  Future<Map<String, dynamic>> addOndcCustomer(String displayName, {double? amount}) =>
+      _post('/api/ondc/customers', {
+        'displayName': displayName,
+        if (amount != null) 'amount': amount,
+      });
 
   Future<Map<String, dynamic>> _get(String path) async {
     final response = await http.get(_uri(path), headers: _headers());

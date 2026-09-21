@@ -136,6 +136,10 @@ void main() {
       await tester.tap(find.text('Catalogue'));
       await tester.pumpAndSettle();
       expect(find.text('Add product'), findsOneWidget);
+      await tester.tap(find.text('Connections'));
+      await tester.pumpAndSettle();
+      expect(find.text('Connect ONDC sandbox'), findsOneWidget);
+      expect(find.text('Add ONDC customer'), findsOneWidget);
       expect(tester.takeException(), isNull);
     }, () => MockClient((request) async {
       if (request.url.path == '/api/ondc/orders') {
@@ -169,6 +173,12 @@ Future<http.Response> _response(http.Request request) async {
     case '/api/ondc/orders':
     case '/api/catalog':
       body = [];
+    case '/api/ondc/customers':
+      body = {'displayName': 'New buyer', 'source': 'ONDC', 'visitCount': 1, 'lifetimeSpend': 250, 'churnRisk': 0.15};
+    case '/api/integrations/ondc/connect-dev':
+      body = {'ok': true, 'pingOk': true, 'fromNetwork': false, 'customersCreated': 2, 'ordersCreated': 2, 'buyers': ['Mystore', 'Paytm']};
+    case '/api/integrations/status':
+      body = {'ondc': {'live': false, 'subscriberId': 'fintap.local'}};
     default:
       body = {};
   }

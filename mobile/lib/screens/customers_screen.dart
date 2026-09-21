@@ -129,8 +129,8 @@ class _CustomersScreenState extends State<CustomersScreen> {
           padding: const EdgeInsets.only(bottom: 24),
           children: [
             MerchantHeader(
-              title: 'Card customers',
-              subtitle: 'Customer relationships',
+              title: 'Card & ONDC customers',
+              subtitle: 'In-store cards and ONDC buyer apps',
               trailing: const Icon(Icons.people_outline, color: Colors.white, size: 32),
               child: Row(children: [
                 SummaryMetric(value: '${customers.length}', label: 'Recognised'),
@@ -182,7 +182,10 @@ class _CustomersScreenState extends State<CustomersScreen> {
                             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                               Text(name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
                               const SizedBox(height: 3),
-                              Text('${customer['visitCount']} visits', style: const TextStyle(fontSize: 11, color: FtColors.muted)),
+                              Text(
+                                customer['source'] == 'ONDC' ? 'ONDC buyer · ${customer['visitCount']} orders' : '${customer['visitCount']} visits',
+                                style: const TextStyle(fontSize: 11, color: FtColors.muted),
+                              ),
                             ])),
                             const SizedBox(width: 8),
                             Text(inr.format(asNum(customer['lifetimeSpend'])), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800)),
