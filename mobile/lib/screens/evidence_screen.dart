@@ -77,6 +77,7 @@ class _EvidenceScreenState extends State<EvidenceScreen> {
   Widget build(BuildContext context) {
     final ondcLive = (status?['ondc'] as Map?)?['live'] == true;
     final rzpReady = (status?['razorpay'] as Map?)?['ready'] == true;
+    final runtimeCredentialsAllowed = (status?['live'] as Map?)?['runtimeCredentialsAllowed'] == true;
     return Scaffold(
       appBar: AppBar(
         title: const FinTapMark(light: true, compact: true),
@@ -130,9 +131,21 @@ class _EvidenceScreenState extends State<EvidenceScreen> {
                 ),
                 const SizedBox(height: 12),
                 _section(
+                  'ONDC last asynchronous callback',
+                  data!['ondcCallback'] as Map<String, dynamic>? ?? {},
+                  actions: const [
+                    Text(
+                      'Failed callbacks show the action, transaction and error here. Transient failures are retried up to three times.',
+                      style: TextStyle(color: FtColors.muted, fontSize: 13),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _section(
                   'Razorpay last order',
                   data!['razorpay'] as Map<String, dynamic>? ?? {},
                   actions: [
+                    if (runtimeCredentialsAllowed) ...[
                     TextField(
                       controller: rzpKey,
                       decoration: const InputDecoration(labelText: 'Razorpay Key ID (rzp_test_...)'),
@@ -151,6 +164,11 @@ class _EvidenceScreenState extends State<EvidenceScreen> {
                               ),
                       child: const Text('Connect Razorpay'),
                     ),
+                    ] else
+                      const Text(
+                        'Configure Razorpay with backend environment variables. Runtime secret entry is disabled.',
+                        style: TextStyle(color: FtColors.muted, fontSize: 13),
+                      ),
                     const Text(
                       'Copy both values from Razorpay Dashboard → API Keys. Test keys start with rzp_test_. Then collect a card on Pay.',
                       style: TextStyle(color: FtColors.muted, fontSize: 13),
@@ -162,6 +180,7 @@ class _EvidenceScreenState extends State<EvidenceScreen> {
                   'Mastercard last session',
                   data!['mastercard'] as Map<String, dynamic>? ?? {},
                   actions: [
+                    if (runtimeCredentialsAllowed) ...[
                     TextField(
                       controller: merchantId,
                       decoration: const InputDecoration(labelText: 'MPGS merchant ID'),
@@ -180,6 +199,11 @@ class _EvidenceScreenState extends State<EvidenceScreen> {
                               ),
                       child: const Text('Connect Mastercard sandbox'),
                     ),
+                    ] else
+                      const Text(
+                        'Configure MC_MERCHANT_ID and MC_API_PASSWORD in the backend environment.',
+                        style: TextStyle(color: FtColors.muted, fontSize: 13),
+                      ),
                     const Text(
                       'Get these from Mastercard Merchant Manager or your acquiring bank. There is no public shared password. After connect, collect a card payment on Pay.',
                       style: TextStyle(color: FtColors.muted, fontSize: 13),

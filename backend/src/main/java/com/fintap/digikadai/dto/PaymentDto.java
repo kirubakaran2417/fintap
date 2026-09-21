@@ -15,6 +15,9 @@ public record PaymentDto(
         String reference,
         Instant createdAt,
         String checkoutUrl,
-        String gatewayOrderId
+        String gatewayOrderId,
+        String gatewaySessionId,
+        String gatewayProvider,
+        String failureReason
 ) {
 }

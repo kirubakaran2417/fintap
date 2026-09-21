@@ -49,6 +49,7 @@ public class MastercardGatewayService {
         body.put("merchantId", blank(mc.getMerchantId()));
         body.put("gatewayBaseUrl", mc.getGatewayBaseUrl());
         body.put("currency", mc.getCurrency());
+        body.put("checkoutScriptUrl", mc.getCheckoutScriptUrl());
         body.put("note", "Tap on Phone NFC still needs the Mastercard CPoC/MPoC SDK. MPGS sandbox sessions need merchant ID + API password from Merchant Manager or your acquirer.");
         return body;
     }
@@ -117,9 +118,11 @@ public class MastercardGatewayService {
                 .put("id", orderId)
                 .put("amount", amount.toPlainString())
                 .put("currency", mc.getCurrency());
+        String returnUrl = trimSlash(properties.getPublicBaseUrl()) + "/pay/mastercard/" + orderId + "/return";
         body.putObject("interaction")
                 .put("operation", "PURCHASE")
-                .put("returnUrl", "https://localhost/pay/return");
+                .put("returnUrl", returnUrl)
+                .put("cancelUrl", trimSlash(properties.getPublicBaseUrl()) + "/pay/mastercard/" + orderId + "/cancel");
         String json = write(body);
         String url = merchantPath(mc) + "/session";
         try {
@@ -132,7 +135,7 @@ public class MastercardGatewayService {
                     .body(String.class);
             JsonNode node = mapper.readTree(raw == null ? "{}" : raw);
             String sessionId = node.path("session").path("id").asText();
-            String checkout = trimSlash(mc.getGatewayBaseUrl()) + "/checkout/pay/" + sessionId;
+            String checkout = trimSlash(properties.getPublicBaseUrl()) + "/pay/mastercard/" + orderId;
             Map<String, Object> proof = new LinkedHashMap<>();
             proof.put("ok", !sessionId.isBlank());
             proof.put("live", true);
@@ -177,10 +180,31 @@ public class MastercardGatewayService {
         }
     }
 
+    public boolean ready() {
+        return properties.getMastercard().gatewayReady();
+    }
+
+    public JsonNode retrieveOrderNode(String orderId) {
+        IntegrationProperties.Mastercard mc = properties.getMastercard();
+        if (!mc.gatewayReady()) {
+            throw new IllegalStateException("Gateway not configured");
+        }
+        String raw = http.get().uri(merchantPath(mc) + "/order/" + orderId)
+                .header("Authorization", basic(mc)).retrieve().body(String.class);
+        try {
+            return mapper.readTree(raw == null ? "{}" : raw);
+        } catch (Exception ex) {
+            throw new IllegalStateException("Invalid Mastercard order response", ex);
+        }
+    }
+
     public Map<String, Object> payWithDevicePayload(String orderId, String sessionId, JsonNode devicePayment) {
         IntegrationProperties.Mastercard mc = properties.getMastercard();
         if (!mc.gatewayReady()) {
             return Map.of("ok", false, "error", "Gateway not configured");
+        }
+        if (orderId == null || orderId.isBlank() || devicePayment == null || devicePayment.isEmpty()) {
+            return Map.of("ok", false, "error", "Order ID and certified SDK devicePayment payload are required");
         }
         String txnId = "txn-" + UUID.randomUUID().toString().substring(0, 8);
         ObjectNode body = mapper.createObjectNode();
@@ -215,10 +239,6 @@ public class MastercardGatewayService {
         String token = Base64.getEncoder().encodeToString(
                 ("merchant." + mc.getMerchantId() + ":" + mc.getApiPassword()).getBytes(StandardCharsets.UTF_8));
         return "Basic " + token;
-    }
-
-    private String localCheckoutUrl(String orderId) {
-        return "http://localhost:8080/pay/card/" + orderId;
     }
 
     private String write(ObjectNode node) {

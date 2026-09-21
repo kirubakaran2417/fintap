@@ -5,6 +5,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "integrations")
 public class IntegrationProperties {
 
+    private String publicBaseUrl = "http://localhost:8080";
+    private boolean allowRuntimeCredentials;
     private final Ondc ondc = new Ondc();
     private final Mastercard mastercard = new Mastercard();
     private final Razorpay razorpay = new Razorpay();
@@ -21,6 +23,22 @@ public class IntegrationProperties {
         return razorpay;
     }
 
+    public String getPublicBaseUrl() {
+        return publicBaseUrl;
+    }
+
+    public void setPublicBaseUrl(String publicBaseUrl) {
+        this.publicBaseUrl = publicBaseUrl;
+    }
+
+    public boolean isAllowRuntimeCredentials() {
+        return allowRuntimeCredentials;
+    }
+
+    public void setAllowRuntimeCredentials(boolean allowRuntimeCredentials) {
+        this.allowRuntimeCredentials = allowRuntimeCredentials;
+    }
+
     public static class Ondc {
         private boolean enabled;
         private String subscriberId = "";
@@ -29,6 +47,11 @@ public class IntegrationProperties {
         private String signingPrivateKey = "";
         private String signingPublicKey = "";
         private String encryptionPrivateKey = "";
+        private String encryptionPublicKey = "";
+        private String registryEncryptionPublicKey = "";
+        private String siteVerificationToken = "";
+        private boolean verifyIncoming = true;
+        private boolean allowHttpCallbacks;
         private String registryUrl = "";
         private String gatewayUrl = "";
         private String mockBppUrl = "";
@@ -93,6 +116,46 @@ public class IntegrationProperties {
 
         public void setEncryptionPrivateKey(String encryptionPrivateKey) {
             this.encryptionPrivateKey = encryptionPrivateKey;
+        }
+
+        public String getEncryptionPublicKey() {
+            return encryptionPublicKey;
+        }
+
+        public void setEncryptionPublicKey(String encryptionPublicKey) {
+            this.encryptionPublicKey = encryptionPublicKey;
+        }
+
+        public String getRegistryEncryptionPublicKey() {
+            return registryEncryptionPublicKey;
+        }
+
+        public void setRegistryEncryptionPublicKey(String registryEncryptionPublicKey) {
+            this.registryEncryptionPublicKey = registryEncryptionPublicKey;
+        }
+
+        public String getSiteVerificationToken() {
+            return siteVerificationToken;
+        }
+
+        public void setSiteVerificationToken(String siteVerificationToken) {
+            this.siteVerificationToken = siteVerificationToken;
+        }
+
+        public boolean isVerifyIncoming() {
+            return verifyIncoming;
+        }
+
+        public void setVerifyIncoming(boolean verifyIncoming) {
+            this.verifyIncoming = verifyIncoming;
+        }
+
+        public boolean isAllowHttpCallbacks() {
+            return allowHttpCallbacks;
+        }
+
+        public void setAllowHttpCallbacks(boolean allowHttpCallbacks) {
+            this.allowHttpCallbacks = allowHttpCallbacks;
         }
 
         public String getRegistryUrl() {
@@ -180,6 +243,7 @@ public class IntegrationProperties {
         private String apiPassword = "";
         private String apiVersion = "100";
         private String currency = "INR";
+        private String checkoutScriptUrl = "";
         private boolean developersEnabled;
         private String developersBaseUrl = "https://sandbox.api.mastercard.com";
         private String consumerKey = "";
@@ -233,6 +297,18 @@ public class IntegrationProperties {
 
         public void setCurrency(String currency) {
             this.currency = currency;
+        }
+
+        public String getCheckoutScriptUrl() {
+            if (checkoutScriptUrl == null || checkoutScriptUrl.isBlank()) {
+                String base = gatewayBaseUrl == null ? "" : gatewayBaseUrl.replaceAll("/+$", "");
+                return base + "/static/checkout/checkout.min.js";
+            }
+            return checkoutScriptUrl;
+        }
+
+        public void setCheckoutScriptUrl(String checkoutScriptUrl) {
+            this.checkoutScriptUrl = checkoutScriptUrl;
         }
 
         public boolean isDevelopersEnabled() {

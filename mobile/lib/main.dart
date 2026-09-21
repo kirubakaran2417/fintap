@@ -22,6 +22,15 @@ class FinTapApp extends StatelessWidget {
       title: 'FinTap',
       debugShowCheckedModeBanner: false,
       theme: finTapTheme(),
+      builder: (context, child) => ColoredBox(
+        color: const Color(0xFFE3EAF5),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: child ?? const SizedBox.shrink(),
+          ),
+        ),
+      ),
       home: const Bootstrap(),
     );
   }
@@ -61,7 +70,7 @@ class _BootstrapState extends State<Bootstrap> {
   Widget build(BuildContext context) {
     return child ??
         const Scaffold(
-          backgroundColor: FtColors.ink,
+          backgroundColor: FtColors.navy,
           body: Center(child: CircularProgressIndicator(color: Colors.white)),
         );
   }

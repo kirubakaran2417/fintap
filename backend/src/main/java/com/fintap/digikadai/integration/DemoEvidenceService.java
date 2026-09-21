@@ -12,6 +12,7 @@ public class DemoEvidenceService {
 
     private final Map<String, Object> ondcPing = new ConcurrentHashMap<>();
     private final Map<String, Object> ondcLookup = new ConcurrentHashMap<>();
+    private final Map<String, Object> ondcCallback = new ConcurrentHashMap<>();
     private final Map<String, Object> mastercard = new ConcurrentHashMap<>();
     private final Map<String, Object> razorpay = new ConcurrentHashMap<>();
 
@@ -25,6 +26,12 @@ public class DemoEvidenceService {
         ondcLookup.clear();
         ondcLookup.putAll(event);
         ondcLookup.put("recordedAt", Instant.now().toString());
+    }
+
+    public void recordOndcCallback(Map<String, Object> event) {
+        ondcCallback.clear();
+        ondcCallback.putAll(event);
+        ondcCallback.put("recordedAt", Instant.now().toString());
     }
 
     public void recordMastercard(Map<String, Object> event) {
@@ -44,6 +51,7 @@ public class DemoEvidenceService {
         body.put("disclaimer", "Live proof is a call whose URL host is mock.ondc.org, preprod.registry.ondc.org, test-gateway.mastercard.com, or api.razorpay.com.");
         body.put("ondcPing", copy(ondcPing));
         body.put("ondcLookup", copy(ondcLookup));
+        body.put("ondcCallback", copy(ondcCallback));
         body.put("mastercard", copy(mastercard));
         body.put("razorpay", copy(razorpay));
         return body;

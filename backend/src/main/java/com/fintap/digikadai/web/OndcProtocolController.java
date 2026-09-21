@@ -8,6 +8,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
@@ -25,40 +26,54 @@ public class OndcProtocolController {
     }
 
     @PostMapping("/search")
-    public Map<String, Object> search(@RequestBody JsonNode body) {
-        ondc.onSearchCatalog(body);
-        return ondc.ack();
+    public Map<String, Object> search(@RequestBody String body,
+                                      @RequestHeader(value = "Authorization", required = false) String authorization) {
+        return accept("search", body, authorization);
     }
 
     @PostMapping("/select")
-    public Map<String, Object> select(@RequestBody JsonNode body) {
-        return ondc.ack();
+    public Map<String, Object> select(@RequestBody String body,
+                                      @RequestHeader(value = "Authorization", required = false) String authorization) {
+        return accept("select", body, authorization);
     }
 
     @PostMapping("/init")
-    public Map<String, Object> init(@RequestBody JsonNode body) {
-        return ondc.ack();
+    public Map<String, Object> init(@RequestBody String body,
+                                    @RequestHeader(value = "Authorization", required = false) String authorization) {
+        return accept("init", body, authorization);
     }
 
     @PostMapping("/confirm")
-    public Map<String, Object> confirm(@RequestBody JsonNode body) {
-        ondc.captureConfirm(body);
-        return ondc.ack();
+    public Map<String, Object> confirm(@RequestBody String body,
+                                       @RequestHeader(value = "Authorization", required = false) String authorization) {
+        return accept("confirm", body, authorization);
     }
 
     @PostMapping("/status")
-    public Map<String, Object> status(@RequestBody JsonNode body) {
-        return ondc.ack();
+    public Map<String, Object> status(@RequestBody String body,
+                                      @RequestHeader(value = "Authorization", required = false) String authorization) {
+        return accept("status", body, authorization);
     }
 
     @PostMapping("/cancel")
-    public Map<String, Object> cancel(@RequestBody JsonNode body) {
-        return ondc.ack();
+    public Map<String, Object> cancel(@RequestBody String body,
+                                      @RequestHeader(value = "Authorization", required = false) String authorization) {
+        return accept("cancel", body, authorization);
     }
 
     @PostMapping("/on_subscribe")
     public Map<String, Object> onSubscribe(@RequestBody JsonNode body) {
-        return Map.of("answer", body.path("challenge").asText(""));
+        return Map.of("answer", ondc.answerSubscriptionChallenge(body));
+    }
+
+    private Map<String, Object> accept(String action, String body, String authorization) {
+        try {
+            var envelope = ondc.verifyAndParse(action, body, authorization);
+            ondc.dispatchCallback(action, envelope);
+            return ondc.ack();
+        } catch (IllegalArgumentException ex) {
+            return ondc.nack("10000", ex.getMessage());
+        }
     }
 }
 
@@ -138,6 +153,10 @@ class IntegrationController {
 
     @PostMapping("/razorpay/credentials")
     public Map<String, Object> razorpayCredentials(@RequestBody Map<String, String> body) {
+        if (!live.runtimeCredentialsAllowed()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Runtime credentials are disabled; use environment variables or a secrets manager.");
+        }
         try {
             live.saveRazorpay(body.get("keyId"), body.get("keySecret"));
         } catch (IllegalArgumentException ex) {
@@ -148,6 +167,10 @@ class IntegrationController {
 
     @PostMapping("/mastercard/credentials")
     public Map<String, Object> mastercardCredentials(@RequestBody Map<String, String> body) {
+        if (!live.runtimeCredentialsAllowed()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Runtime credentials are disabled; use environment variables or a secrets manager.");
+        }
         String merchantId = body.get("merchantId");
         String apiPassword = body.get("apiPassword");
         try {
@@ -168,7 +191,9 @@ class IntegrationController {
 
     @PostMapping("/ondc/keys")
     public Map<String, String> keys() {
-        return signatures.generateSigningKeyPair();
+        Map<String, String> keys = new java.util.LinkedHashMap<>(signatures.generateSigningKeyPair());
+        keys.putAll(signatures.generateEncryptionKeyPair());
+        return keys;
     }
 
     @PostMapping("/ondc/ping")

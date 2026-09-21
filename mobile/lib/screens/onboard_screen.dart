@@ -2,6 +2,7 @@ import 'package:digi_kadai/main.dart';
 import 'package:digi_kadai/screens/shell.dart';
 import 'package:digi_kadai/theme.dart';
 import 'package:digi_kadai/widgets/logo.dart';
+import 'package:digi_kadai/widgets/merchant_ui.dart';
 import 'package:flutter/material.dart';
 
 class OnboardScreen extends StatefulWidget {
@@ -26,9 +27,20 @@ class _OnboardScreenState extends State<OnboardScreen> {
   void initState() {
     super.initState();
     api.me().then((me) {
+      if (!mounted) return;
       owner.text = me['ownerName']?.toString() ?? '';
       shop.text = (me['shopName']?.toString() ?? '').contains("'s store") ? '' : (me['shopName']?.toString() ?? '');
     }).catchError((_) {});
+  }
+
+  @override
+  void dispose() {
+    shop.dispose();
+    owner.dispose();
+    gstin.dispose();
+    address.dispose();
+    city.dispose();
+    super.dispose();
   }
 
   Future<void> _save() async {
@@ -56,6 +68,7 @@ class _OnboardScreenState extends State<OnboardScreen> {
         (_) => false,
       );
     } catch (e) {
+      if (!mounted) return;
       setState(() => error = e.toString());
     } finally {
       if (mounted) setState(() => loading = false);
@@ -65,13 +78,15 @@ class _OnboardScreenState extends State<OnboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const FinTapMark(light: true, compact: true)),
+      backgroundColor: Colors.white,
+      appBar: AppBar(title: const FinTapMark(compact: true), backgroundColor: Colors.white, foregroundColor: FtColors.navy),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          const Text('Register your store', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, letterSpacing: -0.6)),
+          const SetupProgress(step: 2),
+          const Text('Shop details', style: TextStyle(fontSize: 24, color: FtColors.navy, fontWeight: FontWeight.w800)),
           const SizedBox(height: 6),
-          const Text('Step 2 of 2 — this shop is what buyers see on ONDC and on receipts.', style: TextStyle(color: FtColors.muted)),
+          const Text('Your business profile', style: TextStyle(color: FtColors.muted, fontSize: 12)),
           const SizedBox(height: 24),
           TextField(controller: shop, decoration: const InputDecoration(labelText: 'Shop name', prefixIcon: Icon(Icons.storefront_outlined))),
           const SizedBox(height: 12),
@@ -111,7 +126,7 @@ class _OnboardScreenState extends State<OnboardScreen> {
             Text(error!, style: const TextStyle(color: Color(0xFFB42318))),
           ],
           const SizedBox(height: 24),
-          FilledButton(onPressed: loading ? null : _save, child: Text(loading ? 'Saving…' : 'Open FinTap')),
+          FilledButton.icon(style: FilledButton.styleFrom(backgroundColor: FtColors.teal), onPressed: loading ? null : _save, icon: const Icon(Icons.check, size: 18), label: Text(loading ? 'Saving…' : 'Open FinTap')),
         ],
       ),
     );

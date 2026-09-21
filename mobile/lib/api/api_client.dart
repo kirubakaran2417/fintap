@@ -70,8 +70,20 @@ class ApiClient {
   Future<Map<String, dynamic>> routing(String amount) =>
       _get('/api/payments/routing?amount=$amount');
 
-  Future<Map<String, dynamic>> acceptPayment(double amount, String rail) =>
-      _post('/api/payments/accept', {'amount': amount, 'rail': rail});
+  Future<Map<String, dynamic>> acceptPayment(double amount, String rail, {String provider = 'AUTO'}) =>
+      _post('/api/payments/accept', {'amount': amount, 'rail': rail, 'provider': provider});
+
+  Future<Map<String, dynamic>> paymentStatus(int id, {bool refresh = true}) =>
+      _get('/api/payments/$id/status?refresh=$refresh');
+
+  Future<Map<String, dynamic>> submitMastercardDevicePayment(
+    int id,
+    String sessionId,
+    Map<String, dynamic> devicePayment,
+  ) => _post('/api/payments/$id/mastercard/device', {
+        'sessionId': sessionId,
+        'devicePayment': devicePayment,
+      });
 
   Future<Map<String, dynamic>> mastercardOrder(String orderId) =>
       _get('/api/payments/mastercard/orders/$orderId');

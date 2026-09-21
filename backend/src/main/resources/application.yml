@@ -27,6 +27,8 @@ app:
   demo-pin: "1234"
 
 integrations:
+  public-base-url: ${PUBLIC_BASE_URL:http://localhost:8080}
+  allow-runtime-credentials: ${ALLOW_RUNTIME_CREDENTIALS:false}
   ondc:
     enabled: ${ONDC_ENABLED:true}
     subscriber-id: ${ONDC_SUBSCRIBER_ID:fintap.local}
@@ -35,6 +37,11 @@ integrations:
     signing-private-key: ${ONDC_SIGNING_PRIVATE_KEY:}
     signing-public-key: ${ONDC_SIGNING_PUBLIC_KEY:}
     encryption-private-key: ${ONDC_ENCRYPTION_PRIVATE_KEY:}
+    encryption-public-key: ${ONDC_ENCRYPTION_PUBLIC_KEY:}
+    registry-encryption-public-key: ${ONDC_REGISTRY_ENCRYPTION_PUBLIC_KEY:}
+    site-verification-token: ${ONDC_SITE_VERIFICATION_TOKEN:}
+    verify-incoming: ${ONDC_VERIFY_INCOMING:true}
+    allow-http-callbacks: ${ONDC_ALLOW_HTTP_CALLBACKS:false}
     registry-url: ${ONDC_REGISTRY_URL:https://preprod.registry.ondc.org}
     gateway-url: ${ONDC_GATEWAY_URL:https://preprod.gateway.ondc.org}
     mock-bpp-url: ${ONDC_MOCK_BPP_URL:https://mock.ondc.org/api/b2b/bpp}
@@ -51,6 +58,7 @@ integrations:
     api-password: ${MC_API_PASSWORD:}
     api-version: ${MC_API_VERSION:100}
     currency: INR
+    checkout-script-url: ${MC_CHECKOUT_SCRIPT_URL:}
     developers-enabled: ${MC_DEV_ENABLED:false}
     developers-base-url: ${MC_DEV_BASE_URL:https://sandbox.api.mastercard.com}
     consumer-key: ${MC_CONSUMER_KEY:}

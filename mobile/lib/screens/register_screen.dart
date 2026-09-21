@@ -4,6 +4,7 @@ import 'package:digi_kadai/screens/onboard_screen.dart';
 import 'package:digi_kadai/screens/shell.dart';
 import 'package:digi_kadai/theme.dart';
 import 'package:digi_kadai/widgets/logo.dart';
+import 'package:digi_kadai/widgets/merchant_ui.dart';
 import 'package:flutter/material.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -20,6 +21,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final confirm = TextEditingController();
   bool loading = false;
   String? error;
+
+  @override
+  void dispose() {
+    owner.dispose();
+    mobile.dispose();
+    pin.dispose();
+    confirm.dispose();
+    super.dispose();
+  }
 
   Future<void> _register() async {
     if (pin.text != confirm.text) {
@@ -38,6 +48,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         (_) => false,
       );
     } catch (e) {
+      if (!mounted) return;
       setState(() => error = e.toString());
     } finally {
       if (mounted) setState(() => loading = false);
@@ -47,13 +58,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const FinTapMark(light: true, compact: true)),
+      backgroundColor: Colors.white,
+      appBar: AppBar(title: const FinTapMark(compact: true), backgroundColor: Colors.white, foregroundColor: FtColors.navy),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          const Text('Create your account', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, letterSpacing: -0.6)),
+          const SetupProgress(step: 1),
+          const Text('Welcome to FinTap', style: TextStyle(fontSize: 24, color: FtColors.navy, fontWeight: FontWeight.w800)),
           const SizedBox(height: 6),
-          const Text('Step 1 of 2 — merchant login. Store details come next.', style: TextStyle(color: FtColors.muted)),
+          const Text('Create your merchant account', style: TextStyle(color: FtColors.muted, fontSize: 12)),
           const SizedBox(height: 24),
           TextField(controller: owner, decoration: const InputDecoration(labelText: 'Your name', prefixIcon: Icon(Icons.person_outline))),
           const SizedBox(height: 12),
@@ -81,7 +94,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             Text(error!, style: const TextStyle(color: Color(0xFFB42318))),
           ],
           const SizedBox(height: 24),
-          FilledButton(onPressed: loading ? null : _register, child: Text(loading ? 'Creating…' : 'Continue to store setup')),
+          FilledButton.icon(onPressed: loading ? null : _register, icon: const Icon(Icons.arrow_forward, size: 18), label: Text(loading ? 'Creating…' : 'Continue to store setup')),
           TextButton(
             onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen())),
             child: const Text('Already registered? Sign in'),

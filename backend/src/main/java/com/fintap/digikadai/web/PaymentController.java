@@ -1,6 +1,7 @@
 package com.fintap.digikadai.web;
 
 import com.fintap.digikadai.domain.Merchant;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fintap.digikadai.dto.AcceptPaymentRequest;
 import com.fintap.digikadai.dto.HomeSummaryDto;
 import com.fintap.digikadai.dto.PaymentDto;
@@ -60,4 +61,18 @@ public class PaymentController {
     public Map<String, Object> mastercardOrder(@PathVariable String orderId) {
         return mastercard.retrieveOrder(orderId);
     }
+
+    @GetMapping("/payments/{id}/status")
+    public PaymentDto paymentStatus(@ModelAttribute Merchant merchant, @PathVariable Long id,
+                                    @RequestParam(defaultValue = "true") boolean refresh) {
+        return payments.status(merchant, id, refresh);
+    }
+
+    @PostMapping("/payments/{id}/mastercard/device")
+    public PaymentDto mastercardDevice(@ModelAttribute Merchant merchant, @PathVariable Long id,
+                                       @RequestBody MastercardDeviceRequest request) {
+        return payments.submitMastercardDevicePayment(merchant, id, request.sessionId(), request.devicePayment());
+    }
+
+    public record MastercardDeviceRequest(String sessionId, JsonNode devicePayment) { }
 }

@@ -16,37 +16,39 @@ class WelcomeScreen extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF06101F), Color(0xFF0B3A67), Color(0xFF0F9D8A)],
+            colors: [FtColors.navy, FtColors.primaryDark, FtColors.purple],
           ),
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(28, 20, 28, 28),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          child: LayoutBuilder(builder: (context, constraints) => SingleChildScrollView(
+            padding: const EdgeInsets.all(28),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: (constraints.maxHeight - 56).clamp(0, double.infinity).toDouble()),
+              child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const FinTapMark(light: true),
-                const Spacer(),
-                const FinTapLogo(size: 88, light: true),
+                Center(child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                  child: const FinTapLogo(size: 64),
+                )),
                 const SizedBox(height: 22),
                 const Text(
-                  'Accept cards.\nSell on ONDC.\nRun the kirana.',
+                  'FinTap',
+                  textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 34,
                     height: 1.15,
                     fontWeight: FontWeight.w800,
-                    letterSpacing: -0.8,
                   ),
                 ),
-                const SizedBox(height: 14),
-                Text(
-                  'SoftPOS, UPI, digital khata and ONDC in one bank-grade merchant app.',
-                  style: TextStyle(color: Colors.white.withValues(alpha:0.78), height: 1.45, fontSize: 15),
-                ),
-                const Spacer(),
+                const SizedBox(height: 8),
+                const Text('Digi Kadai', textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 18)),
+                const SizedBox(height: 40),
                 FilledButton(
-                  style: FilledButton.styleFrom(backgroundColor: Colors.white, foregroundColor: FtColors.ink),
+                  style: FilledButton.styleFrom(backgroundColor: Colors.white, foregroundColor: FtColors.navy),
                   onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterScreen())),
                   child: const Text('Create merchant account'),
                 ),
@@ -58,15 +60,18 @@ class WelcomeScreen extends StatelessWidget {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.white,
                       side: const BorderSide(color: Colors.white54),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                     onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen())),
                     child: const Text('I already have an account'),
                   ),
                 ),
+                const SizedBox(height: 30),
+                const Icon(Icons.storefront_outlined, color: Colors.white54, size: 24),
               ],
             ),
-          ),
+            ),
+          )),
         ),
       ),
     );
