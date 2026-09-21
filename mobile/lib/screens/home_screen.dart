@@ -388,7 +388,9 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     return rows.map((item) {
       final map = item as Map<String, dynamic>;
-      final card = map['rail'] == 'CARD';
+      final rail = map['rail']?.toString() ?? 'UPI';
+      final card = rail == 'CARD';
+      final kind = _transactionKind(rail, map['status']?.toString() ?? '');
       return Card(
         child: ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
@@ -399,10 +401,18 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Icon(card ? Icons.credit_card : Icons.qr_code_2, color: card ? FtColors.navy : FtColors.teal, size: 20),
           ),
           title: Text(map['customerLabel']?.toString() ?? 'Customer', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
-          subtitle: Text('${map['rail']} · ${map['status']}', style: const TextStyle(fontSize: 11, color: FtColors.muted)),
+          subtitle: Text('$kind · ${map['status']}', style: const TextStyle(fontSize: 11, color: FtColors.muted)),
           trailing: Text(inr.format(asNum(map['amount'])), style: const TextStyle(fontSize: 13, color: FtColors.teal, fontWeight: FontWeight.w700)),
         ),
       );
     }).toList();
+  }
+
+  String _transactionKind(String rail, String status) {
+    final lower = status.toLowerCase();
+    if (lower.contains('ondc')) return 'ONDC order';
+    if (lower.contains('khata') || lower.contains('udhar')) return 'Khata credit';
+    if (rail == 'CARD') return 'Card payment';
+    return 'UPI payment';
   }
 }

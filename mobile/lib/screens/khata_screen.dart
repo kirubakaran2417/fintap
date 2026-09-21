@@ -1,4 +1,5 @@
 import 'package:digi_kadai/main.dart';
+import 'package:digi_kadai/services/whatsapp_service.dart';
 import 'package:digi_kadai/theme.dart';
 import 'package:digi_kadai/widgets/format.dart';
 import 'package:digi_kadai/widgets/merchant_ui.dart';
@@ -17,6 +18,7 @@ class _KhataScreenState extends State<KhataScreen> {
   String? error;
   final name = TextEditingController();
   final amount = TextEditingController();
+  final notes = TextEditingController(text: '');
 
   @override
   void initState() {
@@ -28,6 +30,7 @@ class _KhataScreenState extends State<KhataScreen> {
   void dispose() {
     name.dispose();
     amount.dispose();
+    notes.dispose();
     super.dispose();
   }
 
@@ -46,6 +49,7 @@ class _KhataScreenState extends State<KhataScreen> {
   Future<void> _showEntry() async {
     name.clear();
     amount.clear();
+    notes.clear();
     final form = GlobalKey<FormState>();
     bool credit = false;
     bool saving = false;
@@ -97,6 +101,14 @@ class _KhataScreenState extends State<KhataScreen> {
                       return parsed == null || !parsed.isFinite || parsed < 1 ? 'Enter an amount of at least 1' : null;
                     },
                   ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: notes,
+                    enabled: !saving,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: const InputDecoration(labelText: 'Notes', prefixIcon: Icon(Icons.note_alt_outlined)),
+                    maxLines: 2,
+                  ),
                   if (saveError != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(saveError!, style: const TextStyle(color: FtColors.danger))),
                   const SizedBox(height: 20),
                   FilledButton.icon(
@@ -111,7 +123,7 @@ class _KhataScreenState extends State<KhataScreen> {
                           'mobile': '',
                           'amount': double.parse(amount.text),
                           'credit': credit,
-                          'note': credit ? 'Repayment' : 'Udhaar',
+                          'note': (notes.text.trim().isNotEmpty ? notes.text.trim() : (credit ? 'Repayment' : 'Udhaar')),
                         });
                         if (!sheetContext.mounted) return;
                         updateSheet(() => saving = false);
@@ -189,7 +201,42 @@ class _KhataScreenState extends State<KhataScreen> {
                       ),
                       title: Text(customerName, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
                       subtitle: Text(map['note']?.toString() ?? (credit ? 'Repayment' : 'Udhaar'), style: const TextStyle(fontSize: 11, color: FtColors.muted)),
-                      trailing: Text('${credit ? '+' : '-'}${inr.format(asNum(map['amount']))}', style: TextStyle(fontSize: 13, color: credit ? FtColors.teal : FtColors.danger, fontWeight: FontWeight.w800)),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('${credit ? '+' : '-'}${inr.format(asNum(map['amount']))}', style: TextStyle(fontSize: 13, color: credit ? FtColors.teal : FtColors.danger, fontWeight: FontWeight.w800)),
+                          if (!credit) ...[
+                            const SizedBox(width: 4),
+                            IconButton(
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              tooltip: 'Nudge on WhatsApp',
+                              icon: const Icon(Icons.chat, color: Color(0xFF25D366), size: 20),
+                              onPressed: () async {
+                                final mobile = map['mobile']?.toString() ?? '';
+                                final amt = inr.format(asNum(map['amount'])).replaceAll('₹', '').trim();
+                                try {
+                                  final res = await api.nudgeWhatsapp({
+                                    'mobile': mobile,
+                                    'type': 'KHATA',
+                                    'name': customerName,
+                                    'amount': amt,
+                                    'sendLive': true,
+                                  });
+                                  if (context.mounted) {
+                                    WhatsAppService.showLiveDeliveryModal(context, res);
+                                  }
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Nudge failed: $e')));
+                                  }
+                                }
+                              },
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
                   );
                 }),

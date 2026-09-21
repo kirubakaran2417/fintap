@@ -61,9 +61,15 @@ public class CommerceController {
     public OndcOrderDto status(
             @ModelAttribute Merchant merchant,
             @PathVariable Long id,
-            @RequestBody Map<String, String> body
+            @RequestBody(required = false) Map<String, String> body
     ) {
-        return commerce.updateOrder(merchant, id, OndcOrderStatus.valueOf(body.get("status")));
+        String statusStr = (body != null && body.get("status") != null) ? body.get("status") : "DUNZO_PICKUP";
+        return commerce.updateOrder(merchant, id, statusStr);
+    }
+
+    @PostMapping("/ondc/orders/simulate")
+    public OndcOrderDto simulateOrder(@ModelAttribute Merchant merchant) {
+        return commerce.simulateOndcOrder(merchant);
     }
 
     @GetMapping("/khata")

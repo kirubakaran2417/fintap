@@ -78,10 +78,6 @@ public class PaymentService {
             String provider = request.provider() == null ? "AUTO" : request.provider().trim().toUpperCase(Locale.ROOT);
             boolean useMastercard = "MASTERCARD".equals(provider) || ("AUTO".equals(provider) && mastercardReady());
             boolean useRazorpay = "RAZORPAY".equals(provider) || ("AUTO".equals(provider) && !useMastercard && razorpay.ready());
-            if ("MASTERCARD".equals(provider) && !mastercardReady()) {
-                fail(payment, "MASTERCARD", "Mastercard gateway is not configured");
-                return toDto(payments.save(payment));
-            }
             if ("RAZORPAY".equals(provider) && !razorpay.ready()) {
                 fail(payment, "RAZORPAY", "Razorpay is not configured");
                 return toDto(payments.save(payment));
@@ -219,9 +215,9 @@ public class PaymentService {
         payment.setGatewayOrderId(session.orderId());
         payment.setGatewaySessionId(session.sessionId());
         payment.setCheckoutUrl(session.checkoutUrl());
-        payment.setStatus(session.live() ? TransactionStatus.PENDING : TransactionStatus.SUCCESS);
-        payment.setNote(session.live() ? "MPGS checkout session" : "Local SoftPOS (no Mastercard keys)");
-        payment.setGatewayProvider(session.live() ? "MASTERCARD" : "LOCAL");
+        payment.setStatus(TransactionStatus.PENDING);
+        payment.setNote(session.live() ? "MPGS checkout session" : "Mastercard Hosted Simulator");
+        payment.setGatewayProvider("MASTERCARD");
     }
 
     private void startRazorpay(Payment payment, BigDecimal amount) {

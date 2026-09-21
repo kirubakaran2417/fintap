@@ -26,4 +26,16 @@ public class ApiExceptionHandler {
                 .orElse("Invalid request");
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", message));
     }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, String>> illegalArgument(IllegalArgumentException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("error", ex.getMessage() == null ? "Invalid request parameter" : ex.getMessage()));
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, String>> general(Exception ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", ex.getMessage() == null ? "Internal server error" : ex.getMessage()));
+    }
 }

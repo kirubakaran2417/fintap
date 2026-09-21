@@ -1,5 +1,6 @@
 package com.fintap.digikadai.domain;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -33,6 +34,7 @@ public class OndcOrder {
     private BigDecimal amount;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 64, columnDefinition = "VARCHAR(64)")
     private OndcOrderStatus status;
 
     private Instant createdAt = Instant.now();

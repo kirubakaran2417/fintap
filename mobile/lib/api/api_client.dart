@@ -133,6 +133,9 @@ class ApiClient {
 
   Future<List<dynamic>> ondcOrders() => _getList('/api/ondc/orders');
 
+  Future<Map<String, dynamic>> simulateOndcOrder() =>
+      _post('/api/ondc/orders/simulate', {});
+
   Future<Map<String, dynamic>> updateOrder(int id, String status) =>
       _post('/api/ondc/orders/$id/status', {'status': status});
 
@@ -144,6 +147,9 @@ class ApiClient {
   Future<List<dynamic>> insights(String lang) => _getList('/api/insights?lang=$lang');
 
   Future<List<dynamic>> customers() => _getList('/api/customers');
+
+  Future<Map<String, dynamic>> nudgeWhatsapp(Map<String, dynamic> payload) =>
+      _post('/api/nudge/whatsapp', payload);
 
   Future<Map<String, dynamic>> _get(String path) async {
     final response = await http.get(_uri(path), headers: _headers());

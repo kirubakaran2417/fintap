@@ -207,6 +207,71 @@ public class OndcNetworkService {
         return orders.save(order);
     }
 
+    private static final List<GroceryPreset> RANDOM_GROCERIES = List.of(
+            new GroceryPreset("Aashirvaad Shuddh Chakki Atta 5kg (x1), Fortune Sunflower Oil 1L (x2)", new BigDecimal("545.00")),
+            new GroceryPreset("Amul Pasteurised Butter 500g (x2), Taaza Tea 250g (x1)", new BigDecimal("410.00")),
+            new GroceryPreset("Nestle Maggi 2-Min Noodles 12-Pack (x2), Cadbury Silk 150g (x1)", new BigDecimal("390.00")),
+            new GroceryPreset("Surf Excel Easy Wash Detergent 1kg (x1), Vim Dishwash Gel 500ml (x2)", new BigDecimal("315.00")),
+            new GroceryPreset("Tata Salt Iodised 1kg (x3), Everest Garam Masala 100g (x2)", new BigDecimal("240.00")),
+            new GroceryPreset("Dettol Antiseptic Liquid 250ml (x1), Nivea Soft Cream 100ml (x2)", new BigDecimal("460.00"))
+    );
+    private record GroceryPreset(String summary, BigDecimal price) {}
+
+    @Transactional
+    public OndcOrder simulateIncomingOrder(Merchant merchant) {
+        List<CatalogItem> published = catalog.findByMerchantOrderByNameAsc(merchant).stream()
+                .filter(CatalogItem::isPublishedToOndc).toList();
+
+        String itemsSummary;
+        BigDecimal amount;
+
+        int randIdx = (int) (System.nanoTime() % RANDOM_GROCERIES.size());
+        if (randIdx < 0) randIdx = -randIdx;
+
+        if (!published.isEmpty() && (randIdx % 2 == 0)) {
+            CatalogItem first = published.get(randIdx % published.size());
+            int qty = 1 + (int)(System.nanoTime() % 3);
+            itemsSummary = first.getName() + " (x" + qty + ")";
+            amount = first.getSellingPrice().multiply(BigDecimal.valueOf(qty));
+        } else {
+            GroceryPreset preset = RANDOM_GROCERIES.get(randIdx);
+            itemsSummary = preset.summary();
+            amount = preset.price();
+        }
+
+        String[] buyerApps = {"Paytm ONDC", "Magicpin Buyer", "Mystore BAP", "Pincode by PhonePe", "Blinkit (ONDC)"};
+        String chosenBuyer = buyerApps[(int) (System.nanoTime() % buyerApps.length)];
+
+        OndcOrder order = new OndcOrder();
+        order.setMerchant(merchant);
+        order.setOrderRef("ONDC-AUTO-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase());
+        order.setTransactionId(UUID.randomUUID().toString());
+        order.setMessageId(UUID.randomUUID().toString());
+        order.setProviderId("merchant-" + merchant.getId());
+        order.setBuyerApp(chosenBuyer);
+        order.setItemsSummary(itemsSummary);
+        order.setAmount(amount);
+        order.setStatus(OndcOrderStatus.NEW);
+        order.setCreatedAt(Instant.now());
+        order.setUpdatedAt(Instant.now());
+        order.setLastCallbackAction("on_confirm");
+        order.setCallbackStatus("SENT");
+        order.setRawRequest("{\"silent_auto_order\": true}");
+
+        OndcOrder saved = orders.save(order);
+
+        evidence.recordOndcCallback(Map.of(
+                "ok", true,
+                "action", "on_confirm",
+                "transactionId", saved.getTransactionId(),
+                "orderRef", saved.getOrderRef(),
+                "buyerApp", saved.getBuyerApp(),
+                "simulated", true
+        ));
+
+        return saved;
+    }
+
     public String answerSubscriptionChallenge(JsonNode body) {
         String challenge = requiredText(body, "challenge");
         IntegrationProperties.Ondc ondc = properties.getOndc();

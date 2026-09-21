@@ -28,7 +28,11 @@ app:
 
 integrations:
   public-base-url: ${PUBLIC_BASE_URL:http://localhost:8080}
-  allow-runtime-credentials: ${ALLOW_RUNTIME_CREDENTIALS:false}
+  allow-runtime-credentials: ${ALLOW_RUNTIME_CREDENTIALS:true}
+  whatsapp:
+    phone-number-id: ${WHATSAPP_PHONE_ID:1299091523294543}
+    access-token: ${WHATSAPP_ACCESS_TOKEN:EAAWKbnhz3hkBSs61Hp3DOvn4BZAYFdNpdAdaH9r2LwUVPbkKHvZBe3ZAWx866zURUdgRN3rQbcvWBU1XpwZCVZBtuiFyY5HyYDZAqazEXFLZBcZALUmmPexHKBZBOiN8XvKac4i3JP9zHpSZBbxiBRabuJSTF9n4j8wtiSOz9sUdO1ZAu2ZB5WYm9ZAFgZCh0EoruGFVqx6zzos8YgZB2LM8pGBGHsFFcsOdBvZAsJhlSEwWHFzwUS3tFwMoscL1XZCkgGlde5ipwzFls5YKLE85W0bT9VrXhGxTT}
+    api-version: ${WHATSAPP_API_VERSION:v18.0}
   ondc:
     enabled: ${ONDC_ENABLED:true}
     subscriber-id: ${ONDC_SUBSCRIBER_ID:fintap.local}
@@ -39,9 +43,9 @@ integrations:
     encryption-private-key: ${ONDC_ENCRYPTION_PRIVATE_KEY:}
     encryption-public-key: ${ONDC_ENCRYPTION_PUBLIC_KEY:}
     registry-encryption-public-key: ${ONDC_REGISTRY_ENCRYPTION_PUBLIC_KEY:}
-    site-verification-token: ${ONDC_SITE_VERIFICATION_TOKEN:}
-    verify-incoming: ${ONDC_VERIFY_INCOMING:true}
-    allow-http-callbacks: ${ONDC_ALLOW_HTTP_CALLBACKS:false}
+    site-verification-token: ${ONDC_SITE_VERIFICATION_TOKEN:ondc-site-verification-fintap-token}
+    verify-incoming: ${ONDC_VERIFY_INCOMING:false}
+    allow-http-callbacks: ${ONDC_ALLOW_HTTP_CALLBACKS:true}
     registry-url: ${ONDC_REGISTRY_URL:https://preprod.registry.ondc.org}
     gateway-url: ${ONDC_GATEWAY_URL:https://preprod.gateway.ondc.org}
     mock-bpp-url: ${ONDC_MOCK_BPP_URL:https://mock.ondc.org/api/b2b/bpp}

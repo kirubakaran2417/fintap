@@ -1,4 +1,5 @@
 import 'package:digi_kadai/main.dart';
+import 'package:digi_kadai/services/whatsapp_service.dart';
 import 'package:digi_kadai/theme.dart';
 import 'package:digi_kadai/widgets/format.dart';
 import 'package:digi_kadai/widgets/merchant_ui.dart';
@@ -37,15 +38,26 @@ class _CustomersScreenState extends State<CustomersScreen> {
   }
 
   String _segment(Map<String, dynamic> customer) {
-    if (asNum(customer['churnRisk']) >= 0.5) return 'At risk';
-    return asInt(customer['visitCount']) < 3 ? 'New' : 'Regular';
+    final churnRisk = asNum(customer['churnRisk']);
+    final visitCount = asInt(customer['visitCount']);
+    final spend = asNum(customer['lifetimeSpend']);
+    if (spend >= 15000 || visitCount >= 10) return 'VIP';
+    if (churnRisk >= 0.5) return 'Drifting';
+    if (visitCount < 3) return 'New';
+    return 'Regular';
   }
 
-  Color _color(String value) => value == 'At risk' ? FtColors.danger : value == 'New' ? FtColors.teal : FtColors.navy;
+  Color _color(String value) => switch (value) {
+    'VIP' => const Color(0xFF0F5E9C),
+    'Drifting' => FtColors.danger,
+    'New' => FtColors.teal,
+    _ => FtColors.navy,
+  };
 
   void _showProfile(Map<String, dynamic> customer) {
     final visits = asInt(customer['visitCount']);
     final spend = asNum(customer['lifetimeSpend']);
+    final segment = _segment(customer);
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -58,7 +70,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
           const SizedBox(height: 12),
           Text('${customer['displayName']}', textAlign: TextAlign.center, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
           const SizedBox(height: 4),
-          Text(_segment(customer), style: TextStyle(color: _color(_segment(customer)), fontWeight: FontWeight.w700)),
+          Text(segment, style: TextStyle(color: _color(segment), fontWeight: FontWeight.w700)),
           const SizedBox(height: 24),
           Row(children: [
             SummaryMetric(value: '$visits', label: 'Total visits', light: false),
@@ -67,6 +79,35 @@ class _CustomersScreenState extends State<CustomersScreen> {
           ]),
           const Divider(height: 32),
           ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.trending_down, color: FtColors.orange), title: const Text('Churn risk'), trailing: Text('${(asNum(customer['churnRisk']) * 100).round()}%')),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              style: FilledButton.styleFrom(backgroundColor: const Color(0xFF25D366)),
+              onPressed: () async {
+                Navigator.pop(context);
+                final displayName = customer['displayName']?.toString() ?? 'Customer';
+                final mobile = customer['mobile']?.toString() ?? '';
+                try {
+                  final res = await api.nudgeWhatsapp({
+                    'mobile': mobile,
+                    'type': 'REENGAGE',
+                    'name': displayName,
+                    'sendLive': true,
+                  });
+                  if (context.mounted) {
+                    WhatsAppService.showLiveDeliveryModal(context, res);
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Nudge failed: $e')));
+                  }
+                }
+              },
+              icon: const Icon(Icons.chat, color: Colors.white),
+              label: const Text('Send WhatsApp Discount Nudge'),
+            ),
+          ),
           const SizedBox(height: 12),
           SizedBox(width: double.infinity, child: OutlinedButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))),
         ]),
@@ -103,7 +144,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                 TextField(decoration: const InputDecoration(hintText: 'Search customers', prefixIcon: Icon(Icons.search)), onChanged: (value) => setState(() => query = value.trim().toLowerCase())),
                 const SizedBox(height: 10),
                 Wrap(spacing: 6, runSpacing: 6, children: [
-                  for (final value in ['All', 'Regular', 'At risk', 'New'])
+                  for (final value in ['All', 'VIP', 'Regular', 'Drifting', 'New'])
                     ChoiceChip(label: Text(value, style: const TextStyle(fontSize: 11)), selected: segment == value, onSelected: (_) => setState(() => segment = value)),
                 ]),
                 if (atRisk > 0) Padding(
@@ -113,9 +154,9 @@ class _CustomersScreenState extends State<CustomersScreen> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     tileColor: const Color(0xFFFFF3E0),
                     leading: const Icon(Icons.error_outline, color: FtColors.orange),
-                    title: Text('$atRisk customers at risk', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                    title: Text('$atRisk customers drifting', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: () => setState(() => segment = 'At risk'),
+                    onTap: () => setState(() => segment = 'Drifting'),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -148,9 +189,16 @@ class _CustomersScreenState extends State<CustomersScreen> {
                           ]),
                           const Divider(height: 20),
                           Row(children: [
-                            Text(customerSegment, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color)),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(999)),
+                              child: Text(customerSegment, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color)),
+                            ),
                             const Spacer(),
-                            const Icon(Icons.chevron_right, size: 18, color: FtColors.muted),
+                            if (asInt(customer['visitCount']) < 4)
+                              const Text('Nudge', style: TextStyle(fontSize: 10, color: FtColors.orange, fontWeight: FontWeight.w700))
+                            else
+                              const Icon(Icons.chevron_right, size: 18, color: FtColors.muted),
                           ]),
                         ]),
                       ),

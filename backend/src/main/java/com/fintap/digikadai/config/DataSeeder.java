@@ -21,6 +21,7 @@ import com.fintap.digikadai.service.MerchantService;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -38,9 +39,17 @@ public class DataSeeder {
             KhataEntryRepository khata,
             InsightRepository insights,
             CustomerProfileRepository profiles,
-            MerchantService merchantService
+            MerchantService merchantService,
+            JdbcTemplate jdbcTemplate
     ) {
         return args -> {
+            try {
+                jdbcTemplate.execute("ALTER TABLE ondc_orders ALTER COLUMN status SET DATA TYPE VARCHAR(64)");
+            } catch (Exception e1) {
+                try {
+                    jdbcTemplate.execute("ALTER TABLE ondc_orders ALTER COLUMN status VARCHAR(64)");
+                } catch (Exception ignored) {}
+            }
             if (merchants.findByMobile("9876543210").isPresent()) {
                 Merchant existing = merchants.findByMobile("9876543210").orElseThrow();
                 merchantService.issueDemoToken(existing, "demo-token");

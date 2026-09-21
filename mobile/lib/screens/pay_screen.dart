@@ -291,14 +291,15 @@ class _PayScreenState extends State<PayScreen> {
               value: cardProvider,
               decoration: const InputDecoration(labelText: 'Card provider'),
               items: [
-                if (mastercardReady)
-                  const DropdownMenuItem(value: CardPaymentProvider.mastercard, child: Text('Mastercard hosted checkout')),
+                DropdownMenuItem(
+                  value: CardPaymentProvider.mastercard,
+                  child: Text(mastercardReady ? 'Mastercard hosted checkout' : 'Mastercard hosted checkout (Mock)'),
+                ),
                 if (razorpayReady)
                   const DropdownMenuItem(value: CardPaymentProvider.razorpay, child: Text('Razorpay test checkout')),
                 if (tapOnPhoneReady)
                   const DropdownMenuItem(value: CardPaymentProvider.tapOnPhone, child: Text('Mastercard Tap on Phone')),
-                if (!gatewayReady)
-                  const DropdownMenuItem(value: CardPaymentProvider.auto, child: Text('Local simulated card')),
+                const DropdownMenuItem(value: CardPaymentProvider.auto, child: Text('Local simulated card')),
               ],
               onChanged: busy ? null : (value) => setState(() => cardProvider = value ?? CardPaymentProvider.auto),
             ),

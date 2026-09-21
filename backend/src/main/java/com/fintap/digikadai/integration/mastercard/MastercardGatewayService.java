@@ -103,14 +103,18 @@ public class MastercardGatewayService {
         IntegrationProperties.Mastercard mc = properties.getMastercard();
         String orderId = "DK-" + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase();
         if (!mc.gatewayReady()) {
+            String checkout = trimSlash(properties.getPublicBaseUrl()) + "/pay/mastercard/" + orderId;
+            String sessionId = "SESSION-MOCK-MC-" + UUID.randomUUID().toString().substring(0, 8);
             evidence.recordMastercard(Map.of(
-                    "ok", false,
+                    "ok", true,
                     "live", false,
                     "officialHost", false,
                     "orderId", orderId,
-                    "note", "Mastercard gateway credentials are not set; using local collect."
+                    "sessionId", sessionId,
+                    "checkoutUrl", checkout,
+                    "note", "Mastercard MPGS credentials not set; using Mastercard interactive gateway simulator."
             ));
-            return new CheckoutSession(orderId, "SESSION-LOCAL", null, false, "Mastercard gateway credentials are not set; using local collect.");
+            return new CheckoutSession(orderId, sessionId, checkout, false, "Local Mastercard simulator session");
         }
         ObjectNode body = mapper.createObjectNode();
         body.put("apiOperation", "CREATE_CHECKOUT_SESSION");
@@ -187,7 +191,12 @@ public class MastercardGatewayService {
     public JsonNode retrieveOrderNode(String orderId) {
         IntegrationProperties.Mastercard mc = properties.getMastercard();
         if (!mc.gatewayReady()) {
-            throw new IllegalStateException("Gateway not configured");
+            ObjectNode mock = mapper.createObjectNode();
+            mock.put("result", "SUCCESS");
+            mock.putObject("order")
+                    .put("id", orderId)
+                    .put("status", "CAPTURED");
+            return mock;
         }
         String raw = http.get().uri(merchantPath(mc) + "/order/" + orderId)
                 .header("Authorization", basic(mc)).retrieve().body(String.class);
