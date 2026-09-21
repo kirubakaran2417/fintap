@@ -58,12 +58,8 @@ integrations:
     api-password: ${MC_API_PASSWORD:}
     api-version: ${MC_API_VERSION:100}
     currency: INR
-<<<<<<< HEAD
-    developers-enabled: ${MC_DEV_ENABLED:true}
-=======
     checkout-script-url: ${MC_CHECKOUT_SCRIPT_URL:}
     developers-enabled: ${MC_DEV_ENABLED:false}
->>>>>>> af59018a8f8c9e2bee402452d72414ce911e12ca
     developers-base-url: ${MC_DEV_BASE_URL:https://sandbox.api.mastercard.com}
     consumer-key: ${MC_CONSUMER_KEY:}
     keystore-path: ${MC_KEYSTORE_PATH:C:\\Users\\SA10732542\\Downloads\\ganesanmail2me_Sandbox_API_Keys\\ganesanmail2me-sandbox.p12}
