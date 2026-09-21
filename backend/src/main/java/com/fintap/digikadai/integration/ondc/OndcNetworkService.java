@@ -6,11 +6,13 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fintap.digikadai.config.IntegrationProperties;
 import com.fintap.digikadai.domain.CatalogItem;
+import com.fintap.digikadai.domain.CustomerProfile;
 import com.fintap.digikadai.domain.Merchant;
 import com.fintap.digikadai.domain.OndcOrder;
 import com.fintap.digikadai.domain.OndcOrderStatus;
 import com.fintap.digikadai.integration.DemoEvidenceService;
 import com.fintap.digikadai.repo.CatalogItemRepository;
+import com.fintap.digikadai.repo.CustomerProfileRepository;
 import com.fintap.digikadai.repo.MerchantRepository;
 import com.fintap.digikadai.repo.OndcOrderRepository;
 import org.slf4j.Logger;
@@ -49,6 +51,7 @@ public class OndcNetworkService {
     private final CatalogItemRepository catalog;
     private final MerchantRepository merchants;
     private final OndcOrderRepository orders;
+    private final CustomerProfileRepository profiles;
     private final ObjectMapper mapper;
     private final DemoEvidenceService evidence;
     private final RestClient http;
@@ -57,13 +60,15 @@ public class OndcNetworkService {
 
     public OndcNetworkService(IntegrationProperties properties, OndcSignatureService signatures,
                               CatalogItemRepository catalog, MerchantRepository merchants,
-                              OndcOrderRepository orders, ObjectMapper mapper,
-                              DemoEvidenceService evidence, RestClient integrationRestClient) {
+                              OndcOrderRepository orders, CustomerProfileRepository profiles,
+                              ObjectMapper mapper, DemoEvidenceService evidence,
+                              RestClient integrationRestClient) {
         this.properties = properties;
         this.signatures = signatures;
         this.catalog = catalog;
         this.merchants = merchants;
         this.orders = orders;
+        this.profiles = profiles;
         this.mapper = mapper;
         this.evidence = evidence;
         this.http = integrationRestClient;
@@ -217,18 +222,110 @@ public class OndcNetworkService {
     }
 
     public Map<String, Object> pingMockSearch() {
+        return searchMockBpp(true);
+    }
+
+    public Map<String, Object> connectDevAndLoadCustomers(Merchant merchant) {
+        Map<String, Object> ping = searchMockBpp(true);
+        Object raw = ping.get("body") != null ? ping.get("body") : ping.get("response");
+        List<String> buyers = extractBuyerNames(raw == null ? "" : raw.toString());
+        boolean fromNetwork = !buyers.isEmpty() && Boolean.TRUE.equals(ping.get("ok"));
+        if (buyers.isEmpty()) {
+            buyers = List.of("Mystore", "Paytm", "PhonePe", "ONDC Mock Buyer");
+        }
+        String basket = catalog.findByMerchantOrderByNameAsc(merchant).stream()
+                .filter(CatalogItem::isPublishedToOndc)
+                .limit(2)
+                .map(CatalogItem::getName)
+                .reduce((left, right) -> left + " + " + right)
+                .orElse("ONDC grocery basket");
+        int createdCustomers = 0;
+        int createdOrders = 0;
+        List<String> loaded = new java.util.ArrayList<>();
+        BigDecimal[] spends = {new BigDecimal("640"), new BigDecimal("1280"), new BigDecimal("390"), new BigDecimal("2100")};
+        double[] risk = {0.12, 0.28, 0.07, 0.44};
+        int index = 0;
+        for (String name : buyers) {
+            String token = "ondc:" + name.toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z0-9]+", "-");
+            if (token.endsWith("-")) token = token.substring(0, token.length() - 1);
+            if (profiles.findByMerchantAndToken(merchant, token).isEmpty()) {
+                CustomerProfile profile = new CustomerProfile();
+                profile.setMerchant(merchant);
+                profile.setToken(token);
+                profile.setDisplayName(name);
+                profile.setVisitCount(1 + (index % 3));
+                profile.setLifetimeSpend(spends[index % spends.length]);
+                profile.setChurnRisk(risk[index % risk.length]);
+                profile.setLastVisit(Instant.now());
+                profiles.save(profile);
+                createdCustomers++;
+            }
+            String orderRef = "ONDC-DEV-" + Integer.toHexString(token.hashCode()).toUpperCase();
+            if (!orders.existsByMerchantAndOrderRef(merchant, orderRef)) {
+                OndcOrder order = new OndcOrder();
+                order.setMerchant(merchant);
+                order.setOrderRef(orderRef);
+                order.setBuyerApp(name);
+                order.setItemsSummary(basket);
+                order.setAmount(spends[index % spends.length]);
+                order.setStatus(index == 0 ? OndcOrderStatus.NEW : OndcOrderStatus.ACCEPTED);
+                order.setCreatedAt(Instant.now());
+                order.setUpdatedAt(Instant.now());
+                orders.save(order);
+                createdOrders++;
+            }
+            loaded.add(name);
+            index++;
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("ok", true);
+        result.put("pingOk", Boolean.TRUE.equals(ping.get("ok")));
+        result.put("officialHost", Boolean.TRUE.equals(ping.get("officialHost")));
+        result.put("fromNetwork", fromNetwork);
+        result.put("url", ping.get("url"));
+        result.put("error", ping.get("error"));
+        result.put("customersCreated", createdCustomers);
+        result.put("ordersCreated", createdOrders);
+        result.put("buyers", loaded);
+        return result;
+    }
+
+    private Map<String, Object> searchMockBpp(boolean recordPing) {
         IntegrationProperties.Ondc ondc = properties.getOndc();
         if (!ondc.isEnabled()) {
             Map<String, Object> skipped = Map.of("ok", false, "officialHost", false,
                     "error", "Set ONDC_ENABLED=true and subscriber keys to call the ONDC sandbox.");
-            evidence.recordOndcPing(skipped);
+            if (recordPing) evidence.recordOndcPing(skipped);
             return skipped;
         }
         ObjectNode payload = mapper.createObjectNode();
-        payload.set("context", newContext("search", "", ""));
+        payload.set("context", newContext("search", "fintap.demo.bap", "https://mock.ondc.org/api/b2b/bap"));
         payload.set("message", mapper.createObjectNode().set("intent",
                 mapper.createObjectNode().set("category", mapper.createObjectNode().put("id", "Grocery"))));
-        return callForEvidence(trimSlash(ondc.getMockBppUrl()) + "/search?mode=mock", write(payload), true);
+        return callForEvidence(trimSlash(ondc.getMockBppUrl()) + "/search?mode=mock", write(payload), recordPing);
+    }
+
+    private List<String> extractBuyerNames(String body) {
+        List<String> names = new java.util.ArrayList<>();
+        if (body == null || body.isBlank() || "null".equals(body)) return names;
+        try {
+            JsonNode root = mapper.readTree(body);
+            collectDescriptorNames(root.path("message").path("catalog").path("providers"), names);
+            collectDescriptorNames(root.path("catalog").path("providers"), names);
+            String bpp = text(root.path("message").path("catalog").path("bpp_descriptor").path("name"), "");
+            if (!bpp.isBlank() && !names.contains(bpp)) names.add(bpp);
+        } catch (Exception ignored) {
+            return names;
+        }
+        return names.stream().limit(8).toList();
+    }
+
+    private void collectDescriptorNames(JsonNode providers, List<String> names) {
+        if (!providers.isArray()) return;
+        for (JsonNode provider : providers) {
+            String name = text(provider.path("descriptor").path("name"), text(provider.path("id"), ""));
+            if (!name.isBlank() && !names.contains(name)) names.add(name);
+        }
     }
 
     public Map<String, Object> registryLookup() {
@@ -439,7 +536,12 @@ public class OndcNetworkService {
             result.put("signed", authorization != null);
             result.put("signatureHint", DemoEvidenceService.signatureHint(authorization));
             result.put("response", DemoEvidenceService.truncate(entity.getBody(), 400));
-            if (ping) evidence.recordOndcPing(result);
+            result.put("body", entity.getBody());
+            if (ping) {
+                Map<String, Object> recorded = new LinkedHashMap<>(result);
+                recorded.remove("body");
+                evidence.recordOndcPing(recorded);
+            }
             return result;
         } catch (RestClientException ex) {
             Map<String, Object> result = new LinkedHashMap<>();

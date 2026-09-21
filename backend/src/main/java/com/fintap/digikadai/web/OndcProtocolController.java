@@ -1,11 +1,13 @@
 package com.fintap.digikadai.web;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fintap.digikadai.domain.Merchant;
 import com.fintap.digikadai.integration.ondc.OndcNetworkService;
 import com.fintap.digikadai.integration.ondc.OndcSignatureService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -199,6 +201,12 @@ class IntegrationController {
     @PostMapping("/ondc/ping")
     public Map<String, Object> ping() {
         return ondc.pingMockSearch();
+    }
+
+    @PostMapping("/ondc/connect-dev")
+    public Map<String, Object> connectDev(@ModelAttribute Merchant merchant) {
+        live.ensureOndcLive();
+        return ondc.connectDevAndLoadCustomers(merchant);
     }
 
     @PostMapping("/ondc/lookup")
