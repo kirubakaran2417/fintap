@@ -3,6 +3,7 @@ import 'package:digi_kadai/payments/payment_provider.dart';
 import 'package:digi_kadai/theme.dart';
 import 'package:digi_kadai/widgets/format.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class PayScreen extends StatefulWidget {
@@ -24,11 +25,22 @@ class _PayScreenState extends State<PayScreen> {
   bool tapOnPhoneReady = false;
   CardPaymentProvider cardProvider = CardPaymentProvider.auto;
   final TapOnPhoneAdapter tapOnPhone = MethodChannelTapOnPhoneAdapter();
+  final TextEditingController customerName = TextEditingController();
+  final TextEditingController customerMobile = TextEditingController();
+
+  bool get _hasCustomer {
+    final nameOk = customerName.text.trim().length >= 2;
+    final mobileOk = customerMobile.text.replaceAll(RegExp(r'\D'), '').length == 10;
+    return nameOk && mobileOk;
+  }
 
   @override
   void initState() {
     super.initState();
-    api.integrationStatus().then((status) {
+    customerName.addListener(() => setState(() {}));
+    customerMobile.addListener(() => setState(() {}));
+    super.initState();
+    api.integrationStatus().then((status) async {
       final rzp = status['razorpay'] as Map<String, dynamic>? ?? {};
       final mc = status['mastercardGateway'] as Map<String, dynamic>? ?? {};
       final tapReady = await tapOnPhone.isAvailable();
@@ -43,6 +55,13 @@ class _PayScreenState extends State<PayScreen> {
             : (razorpayReady ? CardPaymentProvider.razorpay : CardPaymentProvider.auto);
       });
     }).catchError((_) {});
+  }
+
+  @override
+  void dispose() {
+    customerName.dispose();
+    customerMobile.dispose();
+    super.dispose();
   }
 
   void _tap(String digit) {
@@ -86,10 +105,16 @@ class _PayScreenState extends State<PayScreen> {
 
   Future<void> _collect() async {
     final value = double.tryParse(amount) ?? 0;
-    if (value < 1) return;
+    if (value < 1 || !_hasCustomer) return;
     setState(() => busy = true);
     try {
-      final payment = await api.acceptPayment(value, rail, provider: cardProvider.apiValue);
+      final payment = await api.acceptPayment(
+        value,
+        rail,
+        provider: cardProvider.apiValue,
+        customerName: customerName.text.trim(),
+        customerMobile: customerMobile.text.replaceAll(RegExp(r'\D'), ''),
+      );
       if (!mounted) return;
       setState(() => lastPayment = payment);
       if (rail == 'CARD' && cardProvider == CardPaymentProvider.tapOnPhone && tapOnPhoneReady) {
@@ -136,6 +161,8 @@ class _PayScreenState extends State<PayScreen> {
               Text(inr.format(value), textAlign: TextAlign.center, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w800)),
               Text(rail == 'CARD' ? 'Card payment' : 'UPI payment', textAlign: TextAlign.center, style: const TextStyle(color: FtColors.muted)),
               const SizedBox(height: 20),
+              ListTile(title: const Text('Customer'), subtitle: Text(customerName.text.trim()), contentPadding: EdgeInsets.zero),
+              ListTile(title: const Text('Mobile'), subtitle: Text(customerMobile.text.replaceAll(RegExp(r'\D'), '')), contentPadding: EdgeInsets.zero),
               ListTile(title: const Text('Transaction ID'), subtitle: SelectableText('${payment['reference']}'), contentPadding: EdgeInsets.zero),
               ListTile(title: const Text('Status'), trailing: Text(paymentStatus, style: const TextStyle(fontWeight: FontWeight.w700)), contentPadding: EdgeInsets.zero),
               if (failed && payment['failureReason'] != null)
@@ -169,7 +196,7 @@ class _PayScreenState extends State<PayScreen> {
           ),
         )),
       );
-      if (mounted) setState(() { amount = '0'; advice = null; });
+      if (mounted) setState(() { amount = '0'; advice = null; customerName.clear(); customerMobile.clear(); });
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
@@ -186,7 +213,34 @@ class _PayScreenState extends State<PayScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
         children: [
+          const SizedBox(height: 8),
+          TextField(
+            controller: customerName,
+            textCapitalization: TextCapitalization.words,
+            textInputAction: TextInputAction.next,
+            enabled: !busy,
+            decoration: const InputDecoration(
+              labelText: 'Customer name',
+              prefixIcon: Icon(Icons.person_outline),
+            ),
+          ),
           const SizedBox(height: 12),
+          TextField(
+            controller: customerMobile,
+            keyboardType: TextInputType.phone,
+            textInputAction: TextInputAction.done,
+            enabled: !busy,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(10),
+            ],
+            decoration: const InputDecoration(
+              labelText: 'Mobile number',
+              prefixIcon: Icon(Icons.phone_android),
+              counterText: '',
+            ),
+          ),
+          const SizedBox(height: 20),
           const Text('Amount to collect', textAlign: TextAlign.center, style: TextStyle(color: FtColors.muted, fontSize: 12)),
           const SizedBox(height: 10),
           SizedBox(height: 64, child: FittedBox(fit: BoxFit.scaleDown, child: Text('₹$amount', style: const TextStyle(fontSize: 44, fontWeight: FontWeight.w800)))),
@@ -260,7 +314,7 @@ class _PayScreenState extends State<PayScreen> {
             ),
           const SizedBox(height: 20),
           FilledButton.icon(
-            onPressed: busy || (double.tryParse(amount) ?? 0) < 1 ? null : _collect,
+            onPressed: busy || !_hasCustomer || (double.tryParse(amount) ?? 0) < 1 ? null : _collect,
             icon: busy ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.arrow_forward, size: 18),
             label: Text(busy ? 'Processing...' : 'Collect payment'),
           ),
