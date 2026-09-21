@@ -51,10 +51,10 @@ integrations:
     api-password: ${MC_API_PASSWORD:}
     api-version: ${MC_API_VERSION:100}
     currency: INR
-    developers-enabled: ${MC_DEV_ENABLED:false}
+    developers-enabled: ${MC_DEV_ENABLED:true}
     developers-base-url: ${MC_DEV_BASE_URL:https://sandbox.api.mastercard.com}
     consumer-key: ${MC_CONSUMER_KEY:}
-    keystore-path: ${MC_KEYSTORE_PATH:}
+    keystore-path: ${MC_KEYSTORE_PATH:C:\\Users\\SA10732542\\Downloads\\ganesanmail2me_Sandbox_API_Keys\\ganesanmail2me-sandbox.p12}
     keystore-password: ${MC_KEYSTORE_PASSWORD:}
     key-alias: ${MC_KEY_ALIAS:}
   razorpay:

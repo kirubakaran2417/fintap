@@ -18,7 +18,7 @@
     <description>Bank white-label merchant OS: SoftPOS + ONDC + AI</description>
 
     <properties>
-        <java.version>21</java.version>
+        <java.version>17</java.version>
     </properties>
 
     <dependencies>

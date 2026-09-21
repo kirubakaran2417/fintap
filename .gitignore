@@ -17,3 +17,6 @@ mobile/.flutter-plugins
 mobile/.flutter-plugins-dependencies
 mobile/pubspec.lock
 backend/data/
+
+# local env
+backend/.env.local
