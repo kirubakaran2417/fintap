@@ -37,8 +37,11 @@ public class Payment {
     private String note;
     private String gatewayOrderId;
     private String gatewaySessionId;
+    private String gatewayProvider;
+    private String failureReason;
     private String checkoutUrl;
     private Instant createdAt = Instant.now();
+    private Instant updatedAt = Instant.now();
 
     public Long getId() {
         return id;
@@ -124,6 +127,11 @@ public class Payment {
         this.gatewaySessionId = gatewaySessionId;
     }
 
+    public String getGatewayProvider() { return gatewayProvider; }
+    public void setGatewayProvider(String gatewayProvider) { this.gatewayProvider = gatewayProvider; }
+    public String getFailureReason() { return failureReason; }
+    public void setFailureReason(String failureReason) { this.failureReason = failureReason; }
+
     public String getCheckoutUrl() {
         return checkoutUrl;
     }
@@ -139,4 +147,7 @@ public class Payment {
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
     }
+
+    public Instant getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
 }

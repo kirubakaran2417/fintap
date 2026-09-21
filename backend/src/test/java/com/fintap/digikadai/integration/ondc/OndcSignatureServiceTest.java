@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class OndcSignatureServiceTest {
@@ -19,5 +20,9 @@ class OndcSignatureServiceTest {
         assertTrue(header.startsWith("Signature keyId=\"digikadai.test|ukid-1|ed25519\""));
         String digest = signatures.digest(body);
         assertEquals(88, digest.length());
+        var details = signatures.verifyAuthorizationHeader(header, keys.get("signingPublicKey"), body);
+        assertEquals("digikadai.test", details.subscriberId());
+        assertThrows(IllegalArgumentException.class,
+                () -> signatures.verifyAuthorizationHeader(header, keys.get("signingPublicKey"), body + " "));
     }
 }

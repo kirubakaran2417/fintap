@@ -37,7 +37,7 @@ class FinTapMark extends StatelessWidget {
             color: color,
             fontWeight: FontWeight.w800,
             fontSize: compact ? 18 : 22,
-            letterSpacing: -0.6,
+            letterSpacing: 0,
           ),
         ),
       ],
@@ -55,16 +55,14 @@ class _LogoPainter extends CustomPainter {
     final rect = Offset.zero & size;
     final bg = Paint()
       ..shader = LinearGradient(
-        colors: light
-            ? const [Color(0xFF1AA394), Color(0xFF0B3A67)]
-            : const [Color(0xFF0F9D8A), Color(0xFF08213F)],
+        colors: const [FtColors.navy, FtColors.primaryDark],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ).createShader(rect);
     canvas.drawRRect(RRect.fromRectAndRadius(rect, Radius.circular(size.width * 0.28)), bg);
 
     final arc = Paint()
-      ..color = const Color(0xFFD4A017)
+      ..color = FtColors.gold
       ..style = PaintingStyle.stroke
       ..strokeWidth = size.width * 0.07
       ..strokeCap = StrokeCap.round;
@@ -85,7 +83,7 @@ class _LogoPainter extends CustomPainter {
           color: Colors.white,
           fontWeight: FontWeight.w800,
           fontSize: size.width * 0.22,
-          letterSpacing: -0.8,
+          letterSpacing: 0,
         ),
       ),
       textDirection: TextDirection.ltr,

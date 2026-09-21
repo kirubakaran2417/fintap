@@ -46,6 +46,11 @@ public class LiveIntegrationService {
             ondc.setSigningPrivateKey(keys.get("signingPrivateKey"));
             ondc.setSigningPublicKey(keys.get("signingPublicKey"));
         }
+        if (blank(ondc.getEncryptionPrivateKey()) || blank(ondc.getEncryptionPublicKey())) {
+            Map<String, String> keys = signatures.generateEncryptionKeyPair();
+            ondc.setEncryptionPrivateKey(keys.get("encryptionPrivateKey"));
+            ondc.setEncryptionPublicKey(keys.get("encryptionPublicKey"));
+        }
         persist();
         return snapshot();
     }
@@ -91,9 +96,6 @@ public class LiveIntegrationService {
             if (!blank(state.uniqueKeyId)) {
                 ondc.setUniqueKeyId(state.uniqueKeyId);
             }
-            if (!blank(state.signingPrivateKey) && blank(ondc.getSigningPrivateKey())) {
-                ondc.setSigningPrivateKey(state.signingPrivateKey);
-            }
             if (!blank(state.signingPublicKey) && blank(ondc.getSigningPublicKey())) {
                 ondc.setSigningPublicKey(state.signingPublicKey);
             }
@@ -104,9 +106,6 @@ public class LiveIntegrationService {
             if (!blank(state.mcMerchantId) && blank(mc.getMerchantId())) {
                 mc.setMerchantId(state.mcMerchantId);
             }
-            if (!blank(state.mcApiPassword) && blank(mc.getApiPassword())) {
-                mc.setApiPassword(state.mcApiPassword);
-            }
             IntegrationProperties.Razorpay rzp = properties.getRazorpay();
             if (state.razorpayEnabled != null) {
                 rzp.setEnabled(state.razorpayEnabled);
@@ -114,9 +113,8 @@ public class LiveIntegrationService {
             if (!blank(state.razorpayKeyId) && blank(rzp.getKeyId())) {
                 rzp.setKeyId(state.razorpayKeyId);
             }
-            if (!blank(state.razorpayKeySecret) && blank(rzp.getKeySecret())) {
-                rzp.setKeySecret(state.razorpayKeySecret);
-            }
+            // Rewrite legacy state without any private keys or gateway passwords.
+            persist();
         } catch (Exception ex) {
             log.warn("Could not load live integration file: {}", ex.getMessage());
         }
@@ -137,7 +135,12 @@ public class LiveIntegrationService {
         body.put("razorpayEnabled", rzp.isEnabled());
         body.put("razorpayReady", rzp.ready());
         body.put("razorpayKeyId", rzp.ready() ? rzp.getKeyId() : null);
+        body.put("runtimeCredentialsAllowed", properties.isAllowRuntimeCredentials());
         return body;
+    }
+
+    public boolean runtimeCredentialsAllowed() {
+        return properties.isAllowRuntimeCredentials();
     }
 
     private void persist() {
@@ -149,15 +152,12 @@ public class LiveIntegrationService {
             state.ondcEnabled = ondc.isEnabled();
             state.subscriberId = ondc.getSubscriberId();
             state.uniqueKeyId = ondc.getUniqueKeyId();
-            state.signingPrivateKey = ondc.getSigningPrivateKey();
             state.signingPublicKey = ondc.getSigningPublicKey();
             state.mcGatewayEnabled = mc.isGatewayEnabled();
             state.mcMerchantId = mc.getMerchantId();
-            state.mcApiPassword = mc.getApiPassword();
             IntegrationProperties.Razorpay rzp = properties.getRazorpay();
             state.razorpayEnabled = rzp.isEnabled();
             state.razorpayKeyId = rzp.getKeyId();
-            state.razorpayKeySecret = rzp.getKeySecret();
             mapper.writerWithDefaultPrettyPrinter().writeValue(FILE.toFile(), state);
         } catch (Exception ex) {
             log.warn("Could not persist live integration file: {}", ex.getMessage());
@@ -172,18 +172,16 @@ public class LiveIntegrationService {
         return value == null || value.isBlank();
     }
 
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties(ignoreUnknown = true)
     public static class State {
         public Boolean ondcEnabled;
         public String subscriberId;
         public String uniqueKeyId;
-        public String signingPrivateKey;
         public String signingPublicKey;
         public Boolean mcGatewayEnabled;
         public String mcMerchantId;
-        public String mcApiPassword;
         public Boolean razorpayEnabled;
         public String razorpayKeyId;
-        public String razorpayKeySecret;
     }
 
     private void loadRazorpayEnvFile() {

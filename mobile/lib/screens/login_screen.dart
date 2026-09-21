@@ -20,6 +20,13 @@ class _LoginScreenState extends State<LoginScreen> {
   String? error;
 
   @override
+  void dispose() {
+    mobile.dispose();
+    pin.dispose();
+    super.dispose();
+  }
+
+  @override
   void initState() {
     super.initState();
     if (api.lastMobile != null) {
@@ -40,6 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
         (_) => false,
       );
     } catch (e) {
+      if (!mounted) return;
       setState(() => error = e.toString());
     } finally {
       if (mounted) setState(() => loading = false);
@@ -49,13 +57,17 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const FinTapMark(light: true, compact: true)),
+      backgroundColor: Colors.white,
+      appBar: AppBar(title: const FinTapMark(compact: true), backgroundColor: Colors.white, foregroundColor: FtColors.navy),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          const Text('Welcome back', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, letterSpacing: -0.6)),
+          const SizedBox(height: 16),
+          const Align(alignment: Alignment.centerLeft, child: Icon(Icons.storefront_outlined, color: FtColors.navy, size: 36)),
+          const SizedBox(height: 24),
+          const Text('Welcome back', style: TextStyle(fontSize: 24, color: FtColors.navy, fontWeight: FontWeight.w800)),
           const SizedBox(height: 6),
-          const Text('Sign in with your registered mobile and PIN.', style: TextStyle(color: FtColors.muted)),
+          const Text('Your merchant account', style: TextStyle(color: FtColors.muted, fontSize: 12)),
           const SizedBox(height: 28),
           TextField(
             controller: mobile,
@@ -74,7 +86,7 @@ class _LoginScreenState extends State<LoginScreen> {
             Text(error!, style: const TextStyle(color: Color(0xFFB42318))),
           ],
           const SizedBox(height: 24),
-          FilledButton(onPressed: loading ? null : _login, child: Text(loading ? 'Signing in…' : 'Sign in')),
+          FilledButton.icon(onPressed: loading ? null : _login, icon: const Icon(Icons.arrow_forward, size: 18), label: Text(loading ? 'Signing in…' : 'Sign in')),
           const SizedBox(height: 16),
           TextButton(
             onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const RegisterScreen())),

@@ -2,13 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class FtColors {
-  static const ink = Color(0xFF071526);
-  static const navy = Color(0xFF0B3A67);
-  static const teal = Color(0xFF0F9D8A);
-  static const gold = Color(0xFFD4A017);
-  static const bg = Color(0xFFF3F6F8);
+  static const ink = Color(0xFF1A1A2E);
+  static const navy = Color(0xFF1C4587);
+  static const primaryDark = Color(0xFF0F2D5E);
+  static const teal = Color(0xFF0F9D58);
+  static const gold = Color(0xFFC9A227);
+  static const purple = Color(0xFF4A0E8F);
+  static const danger = Color(0xFFDB4437);
+  static const orange = Color(0xFFFF6D00);
+  static const border = Color(0xFFE0E4EA);
+  static const bg = Color(0xFFF5F7FA);
   static const card = Colors.white;
-  static const muted = Color(0xFF5B6B7A);
+  static const muted = Color(0xFF5F6368);
 }
 
 ThemeData finTapTheme() {
@@ -28,27 +33,28 @@ ThemeData finTapTheme() {
       displayColor: FtColors.ink,
     ),
     appBarTheme: AppBarTheme(
-      backgroundColor: FtColors.ink,
+      backgroundColor: FtColors.navy,
       foregroundColor: Colors.white,
       elevation: 0,
       centerTitle: false,
       titleTextStyle: GoogleFonts.plusJakartaSans(
         color: Colors.white,
         fontWeight: FontWeight.w700,
-        fontSize: 18,
+        fontSize: 16,
       ),
     ),
     cardTheme: CardThemeData(
       color: FtColors.card,
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-        side: const BorderSide(color: Color(0xFFE4EBF0)),
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(color: FtColors.border),
       ),
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: Colors.white,
-      indicatorColor: FtColors.teal.withValues(alpha:0.16),
+      height: 64,
+      indicatorColor: FtColors.navy.withValues(alpha: 0.10),
       labelTextStyle: WidgetStateProperty.resolveWith(
         (states) => GoogleFonts.plusJakartaSans(
           fontSize: 11,
@@ -59,25 +65,40 @@ ThemeData finTapTheme() {
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFFD7E2EA)),
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: FtColors.border),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: FtColors.teal, width: 1.6),
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: FtColors.navy, width: 1.6),
       ),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        backgroundColor: FtColors.ink,
+        backgroundColor: FtColors.navy,
         foregroundColor: Colors.white,
-        minimumSize: const Size.fromHeight(52),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        textStyle: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 15),
+        minimumSize: const Size.fromHeight(48),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        textStyle: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 13),
       ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: FtColors.navy,
+        minimumSize: const Size(48, 44),
+        side: const BorderSide(color: FtColors.border),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    ),
+    dividerTheme: const DividerThemeData(color: FtColors.border, thickness: 1),
+    tabBarTheme: const TabBarThemeData(
+      labelColor: FtColors.navy,
+      unselectedLabelColor: FtColors.muted,
+      indicatorColor: FtColors.navy,
+      dividerColor: FtColors.border,
     ),
   );
 }

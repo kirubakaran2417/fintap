@@ -113,8 +113,7 @@ Stop: `Ctrl+C` in each terminal. Flutter Chrome: press `q` in the Flutter termin
 Do **not** commit keys. On the new PC:
 
 1. Create test keys in [Razorpay Dashboard → API Keys](https://dashboard.razorpay.com/app/keys) (`rzp_test_...`).
-2. In the app: Demo evidence → paste Key ID and Key Secret → **Connect Razorpay**.  
-   Or create gitignored `backend/data/razorpay.env`:
+2. Set the environment variables or create gitignored `backend/data/razorpay.env`. Runtime entry in Demo Evidence is available only when `ALLOW_RUNTIME_CREDENTIALS=true` for an isolated local demo:
 
 ```
 RAZORPAY_KEY_ID=rzp_test_xxxxxxxx
@@ -139,6 +138,8 @@ Mastercard MPGS still needs merchant ID + API password from Merchant Manager (se
 
 ## ONDC + Mastercard sandbox
 
+See [INTEGRATIONS.md](INTEGRATIONS.md) for the current security model, failure handling, hosted-checkout flow, and complete environment-variable list.
+
 1. Generate signing keys (while logged in as the demo merchant):
 
 ```powershell
@@ -146,7 +147,7 @@ Mastercard MPGS still needs merchant ID + API password from Merchant Manager (se
 Invoke-RestMethod -Method Post -Uri http://localhost:8080/api/integrations/ondc/keys -Headers @{ Authorization = "Bearer TOKEN" }
 ```
 
-2. Register as a seller NP on [ONDC pre-prod registry](https://preprod.registry.ondc.org/ondc/subscribe). Host this API on a public HTTPS URL. Point `subscriber_url` at `/protocol/v1`. Put the public key in `ondc-site-verification.html` (already served).
+2. Register the prototype BPP on ONDC pre-prod. Host this API on a public HTTPS URL, point `subscriber_url` at `/protocol/v1`, and configure the issued site-verification token.
 
 3. Create a [Mastercard Developers](https://developer.mastercard.com) project and/or MPGS test merchant from your acquirer. Put keys in environment variables (see `backend/env.example`).
 
@@ -166,6 +167,8 @@ mvn spring-boot:run
 - `GET /api/integrations/evidence` — last ping URL, HTTP status, truncated signature, last MPGS session id
 - `POST /api/integrations/ondc/ping` — signed `/search` to `https://mock.ondc.org/api/b2b/bpp`
 - Card collect in the app creates an MPGS `CREATE_CHECKOUT_SESSION` when gateway credentials are set
+- `GET /api/payments/{id}/status?refresh=true` reconciles a pending MPGS payment from the gateway
+- `GET /api/integrations/evidence` includes the latest ONDC asynchronous callback failure/success
 
 ### How to show Demo Evidence to judges
 
@@ -218,5 +221,5 @@ Full start steps are in **Run after clone**. Summary: `cd backend` → `mvn spri
 ## Next (pilot)
 
 - Drop in Mastercard Tap on Phone Android SDK and POST the device payment blob
-- Complete ONDC `/on_search` async callback to the BAP after ACK
+- Validate the complete retail-domain payload set with the ONDC pre-production test harness
 - PCI-CPoC / MPoC with the partner bank

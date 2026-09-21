@@ -5,6 +5,7 @@ import 'package:digi_kadai/screens/onboard_screen.dart';
 import 'package:digi_kadai/theme.dart';
 import 'package:digi_kadai/widgets/format.dart';
 import 'package:digi_kadai/widgets/logo.dart';
+import 'package:digi_kadai/widgets/merchant_ui.dart';
 import 'package:flutter/material.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -33,6 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final home = await api.home();
       final profile = await api.me();
       final status = await api.integrationStatus();
+      if (!mounted) return;
       setState(() {
         data = home;
         me = profile;
@@ -40,6 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
         error = null;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() => error = e.toString());
     }
   }
@@ -71,74 +74,62 @@ class _HomeScreenState extends State<HomeScreen> {
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EvidenceScreen())),
             icon: const Icon(Icons.fact_check_outlined),
           ),
-          IconButton(onPressed: _load, icon: const Icon(Icons.refresh)),
-          IconButton(onPressed: _logout, icon: const Icon(Icons.logout)),
+          IconButton(tooltip: 'Refresh', onPressed: _load, icon: const Icon(Icons.refresh)),
+          IconButton(tooltip: 'Sign out', onPressed: _logout, icon: const Icon(Icons.logout)),
         ],
       ),
       body: data == null
-          ? Center(child: error == null ? const CircularProgressIndicator() : Text(error!))
+          ? Center(child: error == null ? const CircularProgressIndicator() : EmptyState(icon: Icons.cloud_off_outlined, message: error!, onRetry: _load))
           : RefreshIndicator(
               onRefresh: _load,
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+                padding: const EdgeInsets.only(bottom: 24),
+                physics: const AlwaysScrollableScrollPhysics(),
                 children: [
-                  Text('$_hello${me?['ownerName'] == null ? '' : ', ${me!['ownerName']}'}', style: const TextStyle(color: FtColors.muted)),
-                  Text(me?['shopName']?.toString() ?? 'Your store', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
-                  Text(
-                    '${me?['city'] ?? 'Add city'} · Merchant dashboard',
-                    style: const TextStyle(color: FtColors.muted),
-                  ),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton.icon(
-                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const OnboardScreen())),
-                      icon: const Icon(Icons.edit_outlined, size: 16),
-                      label: const Text('Store details'),
-                    ),
-                  ),
                   _hero(),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      _mini('This week', inr.format(asNum(data!['weekRevenue']))),
-                      const SizedBox(width: 8),
-                      _mini('This month', inr.format(asNum(data!['monthRevenue']))),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  _weekChart(),
-                  const SizedBox(height: 12),
-                  _split(),
-                  const SizedBox(height: 12),
-                  _grid(),
-                  const SizedBox(height: 12),
-                  _liveCard(),
-                  const SizedBox(height: 12),
-                  Card(
-                    color: const Color(0xFFECFDF8),
-                    child: ListTile(
-                      leading: const Icon(Icons.route, color: FtColors.teal),
-                      title: const Text('Smart routing'),
-                      subtitle: Text('${data!['routingNudge']}'),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 14),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _action(Icons.credit_card, 'Accept payment', FtColors.navy, () => widget.onNavigate?.call(1)),
+                            _action(Icons.people_outline, 'Customers', FtColors.teal, () => widget.onNavigate?.call(2)),
+                            _action(Icons.storefront_outlined, 'ONDC orders', FtColors.orange, () => widget.onNavigate?.call(4)),
+                            _action(Icons.bar_chart, 'Insights', FtColors.purple, () => widget.onNavigate?.call(5)),
+                          ],
+                        ),
+                        const SectionHeading('Recent transactions'),
+                        ..._recent(),
+                        const SectionHeading('Business overview'),
+                        Row(children: [
+                          _mini('This week', inr.format(asNum(data!['weekRevenue']))),
+                          const SizedBox(width: 8),
+                          _mini('This month', inr.format(asNum(data!['monthRevenue']))),
+                        ]),
+                        const SizedBox(height: 10),
+                        _weekChart(),
+                        const SizedBox(height: 10),
+                        _split(),
+                        const SizedBox(height: 10),
+                        _grid(),
+                        if (data!['routingNudge'] != null) ...[
+                          const SizedBox(height: 10),
+                          ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                            leading: const Icon(Icons.route, color: FtColors.teal),
+                            title: const Text('Smart routing', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                            subtitle: Text('${data!['routingNudge']}', style: const TextStyle(fontSize: 12)),
+                          ),
+                        ],
+                        const SectionHeading('Connections'),
+                        _liveCard(),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  const Text('Quick actions', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _action(Icons.contactless, 'Accept pay', () => widget.onNavigate?.call(1)),
-                      _action(Icons.travel_explore, 'ONDC store', () => widget.onNavigate?.call(2)),
-                      _action(Icons.menu_book, 'Khata', () => widget.onNavigate?.call(3)),
-                      _action(Icons.auto_awesome, 'Insights', () => widget.onNavigate?.call(4)),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  const Text('Recent activity', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-                  const SizedBox(height: 8),
-                  ..._recent(),
                 ],
               ),
             ),
@@ -146,40 +137,26 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _hero() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF071526), Color(0xFF0B3A67), Color(0xFF0F9D8A)],
+    return MerchantHeader(
+      title: me?['shopName']?.toString() ?? 'Your store',
+      subtitle: '$_hello${me?['ownerName'] == null ? '' : ', ${me!['ownerName']}'}',
+      trailing: IconButton(
+        tooltip: 'Edit store details',
+        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const OnboardScreen())),
+        icon: const Icon(Icons.edit_outlined, color: Colors.white, size: 20),
+      ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SummaryMetric(value: inr.format(asNum(data!['todayRevenue'])), label: "Today's revenue"),
+            SummaryMetric(value: '${data!['todayCustomers'] ?? 0}', label: 'Customers today'),
+            SummaryMetric(value: inr.format(asNum(data!['khataOutstanding'])), label: 'Udhar pending'),
+          ],
         ),
-        borderRadius: BorderRadius.circular(20),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('TODAY’S COLLECTION', style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12, letterSpacing: 1.1, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 8),
-          Text(inr.format(asNum(data!['todayRevenue'])), style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              _heroChip('${data!['todayCustomers']} customers'),
-              const SizedBox(width: 8),
-              _heroChip('${data!['pendingPayments'] ?? 0} pending'),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _heroChip(String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(99)),
-      child: Text(text, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
     );
   }
 
@@ -330,13 +307,27 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _action(IconData icon, String label, VoidCallback onTap) {
-    return ActionChip(
-      avatar: Icon(icon, size: 18, color: FtColors.navy),
-      label: Text(label),
-      onPressed: onTap,
-      backgroundColor: Colors.white,
-      side: const BorderSide(color: Color(0xFFD7E0E8)),
+  Widget _action(IconData icon, String label, Color color, VoidCallback onTap) {
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 3),
+        child: Material(
+          color: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: const BorderSide(color: FtColors.border)),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 14),
+              child: Column(children: [
+                Icon(icon, color: color, size: 26),
+                const SizedBox(height: 8),
+                SizedBox(height: 36, child: Center(child: Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700)))),
+              ]),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -345,13 +336,13 @@ class _HomeScreenState extends State<HomeScreen> {
     final rzp = integrations?['razorpay'] as Map<String, dynamic>? ?? {};
     final mc = integrations?['mastercardGateway'] as Map<String, dynamic>? ?? {};
     return Card(
-      color: FtColors.ink,
+      color: Colors.white,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Network status', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+            const Text('Network status', style: TextStyle(fontWeight: FontWeight.w700)),
             const SizedBox(height: 10),
             _pill('ONDC', ondc['live'] == true ? 'Live sandbox' : 'Local catalogue'),
             const SizedBox(height: 6),
@@ -360,7 +351,7 @@ class _HomeScreenState extends State<HomeScreen> {
             _pill('Razorpay', rzp['ready'] == true ? 'Test keys live' : 'Not configured'),
             TextButton(
               onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EvidenceScreen())),
-              child: const Text('Open demo evidence', style: TextStyle(color: Colors.white)),
+              child: const Text('Open demo evidence'),
             ),
           ],
         ),
@@ -377,7 +368,7 @@ class _HomeScreenState extends State<HomeScreen> {
           decoration: const BoxDecoration(color: FtColors.teal, shape: BoxShape.circle),
         ),
         const SizedBox(width: 8),
-        Text('$label  ·  $value', style: TextStyle(color: Colors.white.withValues(alpha: 0.86))),
+        Expanded(child: Text('$label  ·  $value', style: const TextStyle(color: FtColors.muted, fontSize: 12))),
       ],
     );
   }
@@ -390,7 +381,6 @@ class _HomeScreenState extends State<HomeScreen> {
           child: ListTile(
             leading: const Icon(Icons.payments_outlined, color: FtColors.navy),
             title: const Text('No collections yet'),
-            subtitle: const Text('Accept a UPI or card payment to populate this dashboard.'),
             trailing: TextButton(onPressed: () => widget.onNavigate?.call(1), child: const Text('Pay')),
           ),
         ),
@@ -401,13 +391,16 @@ class _HomeScreenState extends State<HomeScreen> {
       final card = map['rail'] == 'CARD';
       return Card(
         child: ListTile(
-          leading: CircleAvatar(
-            backgroundColor: card ? const Color(0xFFE7F7F3) : const Color(0xFFEEF3F8),
-            child: Icon(card ? Icons.contactless : Icons.qr_code_2, color: FtColors.navy),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+          leading: Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(color: card ? const Color(0xFFE3EAF5) : const Color(0xFFE6F4EA), borderRadius: BorderRadius.circular(8)),
+            child: Icon(card ? Icons.credit_card : Icons.qr_code_2, color: card ? FtColors.navy : FtColors.teal, size: 20),
           ),
-          title: Text(map['customerLabel']?.toString() ?? 'Customer'),
-          subtitle: Text('${map['rail']} · ${map['status']} · ${map['reference']}'),
-          trailing: Text(inr.format(asNum(map['amount'])), style: const TextStyle(fontWeight: FontWeight.w700)),
+          title: Text(map['customerLabel']?.toString() ?? 'Customer', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+          subtitle: Text('${map['rail']} · ${map['status']}', style: const TextStyle(fontSize: 11, color: FtColors.muted)),
+          trailing: Text(inr.format(asNum(map['amount'])), style: const TextStyle(fontSize: 13, color: FtColors.teal, fontWeight: FontWeight.w700)),
         ),
       );
     }).toList();

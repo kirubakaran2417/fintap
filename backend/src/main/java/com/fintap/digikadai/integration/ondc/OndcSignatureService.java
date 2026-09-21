@@ -2,6 +2,8 @@ package com.fintap.digikadai.integration.ondc;
 
 import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters;
 import org.bouncycastle.crypto.params.Ed25519PublicKeyParameters;
+import org.bouncycastle.crypto.params.X25519PrivateKeyParameters;
+import org.bouncycastle.crypto.params.X25519PublicKeyParameters;
 import org.bouncycastle.crypto.signers.Ed25519Signer;
 import org.bouncycastle.crypto.digests.Blake2bDigest;
 import org.springframework.stereotype.Component;
@@ -9,11 +11,18 @@ import org.springframework.stereotype.Component;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Base64;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
 
 @Component
 public class OndcSignatureService {
+
+    private static final Pattern ATTRIBUTE = Pattern.compile("([a-zA-Z]+)=\"([^\"]*)\"");
 
     public String digest(String body) {
         Blake2bDigest blake = new Blake2bDigest(512);
@@ -55,6 +64,35 @@ public class OndcSignatureService {
         return signer.verifySignature(Base64.getDecoder().decode(signatureB64));
     }
 
+    public SignatureDetails verifyAuthorizationHeader(String authorization, String publicKeyB64, String body) {
+        if (authorization == null || !authorization.startsWith("Signature ")) {
+            throw new IllegalArgumentException("Missing ONDC Signature authorization header");
+        }
+        Map<String, String> attributes = new HashMap<>();
+        Matcher matcher = ATTRIBUTE.matcher(authorization.substring("Signature ".length()));
+        while (matcher.find()) {
+            attributes.put(matcher.group(1), matcher.group(2));
+        }
+        String keyId = required(attributes, "keyId");
+        String signature = required(attributes, "signature");
+        long created = parseEpoch(required(attributes, "created"), "created");
+        long expires = parseEpoch(required(attributes, "expires"), "expires");
+        long now = Instant.now().getEpochSecond();
+        if (created > now + 60 || expires < now || expires <= created || expires - created > 3600) {
+            throw new IllegalArgumentException("Expired or invalid ONDC signature window");
+        }
+        String signingString = "(created): " + created + "\n(expires): " + expires
+                + "\ndigest: BLAKE-512=" + digest(body);
+        if (!verify(publicKeyB64, signingString, signature)) {
+            throw new IllegalArgumentException("Invalid ONDC request signature");
+        }
+        String[] keyParts = keyId.split("\\|");
+        if (keyParts.length < 2) {
+            throw new IllegalArgumentException("Invalid ONDC keyId");
+        }
+        return new SignatureDetails(keyParts[0], keyParts[1], created, expires);
+    }
+
     public Map<String, String> generateSigningKeyPair() {
         SecureRandom random = new SecureRandom();
         byte[] seed = new byte[32];
@@ -69,9 +107,53 @@ public class OndcSignatureService {
         );
     }
 
+    public Map<String, String> generateEncryptionKeyPair() {
+        SecureRandom random = new SecureRandom();
+        X25519PrivateKeyParameters privateKey = new X25519PrivateKeyParameters(random);
+        return Map.of(
+                "encryptionPrivateKey", Base64.getEncoder().encodeToString(privateKey.getEncoded()),
+                "encryptionPublicKey", Base64.getEncoder().encodeToString(privateKey.generatePublicKey().getEncoded())
+        );
+    }
+
+    public String decryptChallenge(String challengeB64, String privateKeyB64, String registryPublicKeyB64) {
+        try {
+            X25519PrivateKeyParameters privateKey = new X25519PrivateKeyParameters(
+                    Base64.getDecoder().decode(privateKeyB64), 0);
+            X25519PublicKeyParameters publicKey = new X25519PublicKeyParameters(
+                    Base64.getDecoder().decode(registryPublicKeyB64), 0);
+            byte[] shared = new byte[32];
+            privateKey.generateSecret(publicKey, shared, 0);
+            Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+            cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(shared, "AES"));
+            return new String(cipher.doFinal(Base64.getDecoder().decode(challengeB64)), StandardCharsets.UTF_8);
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("Unable to decrypt ONDC subscription challenge", ex);
+        }
+    }
+
+    private String required(Map<String, String> values, String key) {
+        String value = values.get(key);
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("Missing ONDC signature attribute: " + key);
+        }
+        return value;
+    }
+
+    private long parseEpoch(String value, String label) {
+        try {
+            return Long.parseLong(value);
+        } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException("Invalid ONDC signature " + label, ex);
+        }
+    }
+
     private byte[] slice(byte[] source, int from, int len) {
         byte[] out = new byte[len];
         System.arraycopy(source, from, out, 0, len);
         return out;
+    }
+
+    public record SignatureDetails(String subscriberId, String uniqueKeyId, long created, long expires) {
     }
 }

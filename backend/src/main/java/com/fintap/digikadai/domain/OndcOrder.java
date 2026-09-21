@@ -6,6 +6,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
@@ -24,6 +25,9 @@ public class OndcOrder {
     private Merchant merchant;
 
     private String orderRef;
+    private String transactionId;
+    private String messageId;
+    private String providerId;
     private String buyerApp;
     private String itemsSummary;
     private BigDecimal amount;
@@ -32,6 +36,12 @@ public class OndcOrder {
     private OndcOrderStatus status;
 
     private Instant createdAt = Instant.now();
+    private Instant updatedAt = Instant.now();
+    private String lastCallbackAction;
+    private String callbackStatus;
+    private String callbackError;
+    @Lob
+    private String rawRequest;
 
     public Long getId() {
         return id;
@@ -52,6 +62,13 @@ public class OndcOrder {
     public void setOrderRef(String orderRef) {
         this.orderRef = orderRef;
     }
+
+    public String getTransactionId() { return transactionId; }
+    public void setTransactionId(String transactionId) { this.transactionId = transactionId; }
+    public String getMessageId() { return messageId; }
+    public void setMessageId(String messageId) { this.messageId = messageId; }
+    public String getProviderId() { return providerId; }
+    public void setProviderId(String providerId) { this.providerId = providerId; }
 
     public String getBuyerApp() {
         return buyerApp;
@@ -92,4 +109,15 @@ public class OndcOrder {
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
     }
+
+    public Instant getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+    public String getLastCallbackAction() { return lastCallbackAction; }
+    public void setLastCallbackAction(String lastCallbackAction) { this.lastCallbackAction = lastCallbackAction; }
+    public String getCallbackStatus() { return callbackStatus; }
+    public void setCallbackStatus(String callbackStatus) { this.callbackStatus = callbackStatus; }
+    public String getCallbackError() { return callbackError; }
+    public void setCallbackError(String callbackError) { this.callbackError = callbackError; }
+    public String getRawRequest() { return rawRequest; }
+    public void setRawRequest(String rawRequest) { this.rawRequest = rawRequest; }
 }
