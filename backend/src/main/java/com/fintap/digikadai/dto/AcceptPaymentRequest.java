@@ -11,6 +11,7 @@ public record AcceptPaymentRequest(
         @NotNull @DecimalMin("1.00") BigDecimal amount,
         @NotNull PaymentRail rail,
         String customerLabel,
+        String customerMobile,
         String provider
 ) {
 }

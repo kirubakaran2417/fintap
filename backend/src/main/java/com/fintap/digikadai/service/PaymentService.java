@@ -71,7 +71,9 @@ public class PaymentService {
         payment.setStatus(TransactionStatus.SUCCESS);
         payment.setCustomerLabel(request.customerLabel() == null || request.customerLabel().isBlank()
                 ? (request.rail() == PaymentRail.CARD ? "Card customer" : "Walk-in")
-                : request.customerLabel());
+                : request.customerLabel().trim());
+        String mobile = MerchantService.digits(request.customerMobile());
+        payment.setCustomerMobile(mobile.isBlank() ? null : mobile);
         if (request.rail() == PaymentRail.CARD) {
             String provider = request.provider() == null ? "AUTO" : request.provider().trim().toUpperCase(Locale.ROOT);
             boolean useMastercard = "MASTERCARD".equals(provider) || ("AUTO".equals(provider) && mastercardReady());
@@ -106,7 +108,7 @@ public class PaymentService {
                 }
             }
             if (payment.getCardToken() == null) {
-                payment.setCardToken("tok_" + Integer.toHexString(payment.getCustomerLabel().hashCode()));
+                payment.setCardToken(tokenFor(payment));
             }
         } else {
             payment.setReference("UPI-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
@@ -243,7 +245,7 @@ public class PaymentService {
         payment.setStatus(TransactionStatus.SUCCESS);
         payment.setNote("Local SoftPOS simulation; no external card gateway configured");
         payment.setGatewayProvider("LOCAL");
-        String token = "tok_" + Integer.toHexString(payment.getCustomerLabel().hashCode());
+        String token = tokenFor(payment);
         payment.setCardToken(token);
         upsertProfile(merchant, token, payment.getCustomerLabel(), amount);
     }
@@ -276,6 +278,13 @@ public class PaymentService {
         return payments.findByMerchantAndCreatedAtAfterAndStatus(merchant, start, TransactionStatus.SUCCESS);
     }
 
+    private String tokenFor(Payment payment) {
+        String identity = payment.getCustomerMobile() != null && !payment.getCustomerMobile().isBlank()
+                ? payment.getCustomerMobile()
+                : payment.getCustomerLabel();
+        return "tok_" + Integer.toHexString(identity.hashCode());
+    }
+
     private void upsertProfile(Merchant merchant, String token, String name, BigDecimal amount) {
         CustomerProfile profile = profiles.findByMerchantAndToken(merchant, token).orElseGet(() -> {
             CustomerProfile created = new CustomerProfile();
@@ -298,6 +307,7 @@ public class PaymentService {
                 payment.getRail(),
                 payment.getStatus(),
                 payment.getCustomerLabel(),
+                payment.getCustomerMobile(),
                 payment.getReference(),
                 payment.getCreatedAt(),
                 payment.getCheckoutUrl(),

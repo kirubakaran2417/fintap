@@ -12,6 +12,7 @@ public record PaymentDto(
         PaymentRail rail,
         TransactionStatus status,
         String customerLabel,
+        String customerMobile,
         String reference,
         Instant createdAt,
         String checkoutUrl,
