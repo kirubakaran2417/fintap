@@ -78,9 +78,25 @@ class ApiClient {
 
   Future<Map<String, dynamic>> integrationStatus() => _get('/api/integrations/status');
 
+  Future<Map<String, dynamic>> demoEvidence() => _get('/api/integrations/evidence');
+
   Future<Map<String, dynamic>> pingOndc() => _post('/api/integrations/ondc/ping', {});
 
   Future<Map<String, dynamic>> lookupOndc() => _post('/api/integrations/ondc/lookup', {});
+
+  Future<Map<String, dynamic>> goLive() => _post('/api/integrations/go-live', {});
+
+  Future<Map<String, dynamic>> saveMastercardCredentials(String merchantId, String apiPassword) =>
+      _post('/api/integrations/mastercard/credentials', {
+        'merchantId': merchantId,
+        'apiPassword': apiPassword,
+      });
+
+  Future<Map<String, dynamic>> saveRazorpayCredentials(String keyId, String keySecret) =>
+      _post('/api/integrations/razorpay/credentials', {
+        'keyId': keyId,
+        'keySecret': keySecret,
+      });
 
   Future<Map<String, dynamic>> generateOndcKeys() => _post('/api/integrations/ondc/keys', {});
 

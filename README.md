@@ -42,8 +42,20 @@ mvn spring-boot:run
 5. Check wiring:
 
 - `GET /api/integrations/status`
+- `GET /api/integrations/evidence` — last ping URL, HTTP status, truncated signature, last MPGS session id
 - `POST /api/integrations/ondc/ping` — signed `/search` to `https://mock.ondc.org/api/b2b/bpp`
 - Card collect in the app creates an MPGS `CREATE_CHECKOUT_SESSION` when gateway credentials are set
+
+### How to show Demo Evidence to judges
+
+1. Start the API (`cd backend; mvn spring-boot:run`) and the app (`cd mobile; flutter run -d chrome`).
+2. Login as `9876543210` / `1234`.
+3. On Home, tap the checklist icon (or **Open demo evidence** on the dark Network status card).
+4. Tap **Ping mock.ondc.org**. If keys are set, the URL host is `mock.ondc.org`, `signed` is true, and `signatureHint` is the first characters of the Beckn `Authorization` signature. Tap a field to copy it.
+5. Go to **Pay**, enter ₹250+, accept **Card**. Return to Demo Evidence. With MPGS keys, `url` is on `test-gateway.mastercard.com` and `sessionId` is the gateway session. Without keys, the card says **Not live yet** — that is the honest local SoftPOS path.
+6. Optional: keep DevTools Network open so they can also see the outbound HTTPS hosts.
+
+Do not claim production ONDC NP status or Tap on Phone NFC unless those SDKs and certificates are actually in place.
 
 Beckn inbound endpoints (no merchant JWT; ONDC network calls these):
 

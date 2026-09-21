@@ -7,6 +7,7 @@ public class IntegrationProperties {
 
     private final Ondc ondc = new Ondc();
     private final Mastercard mastercard = new Mastercard();
+    private final Razorpay razorpay = new Razorpay();
 
     public Ondc getOndc() {
         return ondc;
@@ -14,6 +15,10 @@ public class IntegrationProperties {
 
     public Mastercard getMastercard() {
         return mastercard;
+    }
+
+    public Razorpay getRazorpay() {
+        return razorpay;
     }
 
     public static class Ondc {
@@ -286,6 +291,50 @@ public class IntegrationProperties {
         public boolean developersReady() {
             return developersEnabled && consumerKey != null && !consumerKey.isBlank()
                     && keystorePath != null && !keystorePath.isBlank();
+        }
+    }
+
+    public static class Razorpay {
+        private boolean enabled;
+        private String keyId = "";
+        private String keySecret = "";
+        private String baseUrl = "https://api.razorpay.com";
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getKeyId() {
+            return keyId;
+        }
+
+        public void setKeyId(String keyId) {
+            this.keyId = keyId;
+        }
+
+        public String getKeySecret() {
+            return keySecret;
+        }
+
+        public void setKeySecret(String keySecret) {
+            this.keySecret = keySecret;
+        }
+
+        public String getBaseUrl() {
+            return baseUrl;
+        }
+
+        public void setBaseUrl(String baseUrl) {
+            this.baseUrl = baseUrl;
+        }
+
+        public boolean ready() {
+            return enabled && keyId != null && keyId.startsWith("rzp_")
+                    && keySecret != null && !keySecret.isBlank();
         }
     }
 }

@@ -12,9 +12,12 @@ import com.fintap.digikadai.domain.OndcOrderStatus;
 import com.fintap.digikadai.repo.CatalogItemRepository;
 import com.fintap.digikadai.repo.MerchantRepository;
 import com.fintap.digikadai.repo.OndcOrderRepository;
+import com.fintap.digikadai.integration.DemoEvidenceService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -37,7 +40,8 @@ public class OndcNetworkService {
     private final MerchantRepository merchants;
     private final OndcOrderRepository orders;
     private final ObjectMapper mapper;
-    private final RestClient http = RestClient.create();
+    private final DemoEvidenceService evidence;
+    private final RestClient http;
 
     public OndcNetworkService(
             IntegrationProperties properties,
@@ -45,7 +49,9 @@ public class OndcNetworkService {
             CatalogItemRepository catalog,
             MerchantRepository merchants,
             OndcOrderRepository orders,
-            ObjectMapper mapper
+            ObjectMapper mapper,
+            DemoEvidenceService evidence,
+            RestClient integrationRestClient
     ) {
         this.properties = properties;
         this.signatures = signatures;
@@ -53,6 +59,8 @@ public class OndcNetworkService {
         this.merchants = merchants;
         this.orders = orders;
         this.mapper = mapper;
+        this.evidence = evidence;
+        this.http = integrationRestClient;
     }
 
     public Map<String, Object> status() {
@@ -65,7 +73,8 @@ public class OndcNetworkService {
         body.put("gatewayUrl", ondc.getGatewayUrl());
         body.put("mockBppUrl", ondc.getMockBppUrl());
         body.put("domain", ondc.getDomain());
-        body.put("live", ondc.isEnabled() && ondc.keysReady());
+        body.put("live", ondc.isEnabled() && ondc.keysReady()
+                && ondc.getMockBppUrl() != null && ondc.getMockBppUrl().contains("ondc.org"));
         return body;
     }
 
@@ -126,7 +135,13 @@ public class OndcNetworkService {
     public Map<String, Object> pingMockSearch() {
         IntegrationProperties.Ondc ondc = properties.getOndc();
         if (!ondc.isEnabled()) {
-            return Map.of("ok", false, "error", "Set ONDC_ENABLED=true and subscriber keys to call the ONDC sandbox.");
+            Map<String, Object> skipped = Map.of(
+                    "ok", false,
+                    "officialHost", false,
+                    "error", "Set ONDC_ENABLED=true and subscriber keys to call the ONDC sandbox."
+            );
+            evidence.recordOndcPing(skipped);
+            return skipped;
         }
         ObjectNode payload = mapper.createObjectNode();
         payload.set("context", newContext("search", "", ""));
@@ -134,25 +149,48 @@ public class OndcNetworkService {
         intent.set("category", mapper.createObjectNode().put("id", "Grocery"));
         payload.set("message", mapper.createObjectNode().set("intent", intent));
         String json = write(payload);
-        String url = trimSlash(ondc.getMockBppUrl()) + "/search";
+        String url = trimSlash(ondc.getMockBppUrl()) + "/search?mode=mock";
+        String authorization = ondc.keysReady()
+                ? signatures.authorizationHeader(ondc.getSubscriberId(), ondc.getUniqueKeyId(), ondc.getSigningPrivateKey(), json)
+                : null;
         try {
             RestClient.RequestBodySpec spec = http.post().uri(url).contentType(MediaType.APPLICATION_JSON);
-            if (ondc.keysReady()) {
-                spec = spec.header("Authorization", signatures.authorizationHeader(
-                        ondc.getSubscriberId(), ondc.getUniqueKeyId(), ondc.getSigningPrivateKey(), json));
+            if (authorization != null) {
+                spec = spec.header("Authorization", authorization);
             }
-            String response = spec.body(json).retrieve().body(String.class);
-            return Map.of("ok", true, "url", url, "response", response == null ? "" : response);
+            ResponseEntity<String> entity = spec.body(json).retrieve()
+                    .onStatus(HttpStatusCode::isError, (req, res) -> { })
+                    .toEntity(String.class);
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("ok", true);
+            result.put("officialHost", url.contains("ondc.org"));
+            result.put("url", url);
+            result.put("httpStatus", entity.getStatusCode().value());
+            result.put("signed", authorization != null);
+            result.put("signatureHint", DemoEvidenceService.signatureHint(authorization));
+            result.put("response", DemoEvidenceService.truncate(entity.getBody(), 400));
+            evidence.recordOndcPing(result);
+            return result;
         } catch (RestClientException ex) {
             log.warn("ONDC mock search failed: {}", ex.getMessage());
-            return Map.of("ok", false, "url", url, "error", ex.getMessage());
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("ok", false);
+            result.put("officialHost", url.contains("ondc.org"));
+            result.put("url", url);
+            result.put("signed", authorization != null);
+            result.put("signatureHint", DemoEvidenceService.signatureHint(authorization));
+            result.put("error", ex.getMessage());
+            evidence.recordOndcPing(result);
+            return result;
         }
     }
 
     public Map<String, Object> registryLookup() {
         IntegrationProperties.Ondc ondc = properties.getOndc();
         if (ondc.getSubscriberId() == null || ondc.getSubscriberId().isBlank()) {
-            return Map.of("ok", false, "error", "ONDC_SUBSCRIBER_ID is empty");
+            Map<String, Object> skipped = Map.of("ok", false, "officialHost", false, "error", "ONDC_SUBSCRIBER_ID is empty");
+            evidence.recordOndcLookup(skipped);
+            return skipped;
         }
         ObjectNode body = mapper.createObjectNode()
                 .put("subscriber_id", ondc.getSubscriberId())
@@ -162,17 +200,38 @@ public class OndcNetworkService {
                 .put("city", ondc.getCity());
         String json = write(body);
         String url = trimSlash(ondc.getRegistryUrl()) + "/lookup";
+        String authorization = ondc.keysReady()
+                ? signatures.authorizationHeader(ondc.getSubscriberId(), ondc.getUniqueKeyId(), ondc.getSigningPrivateKey(), json)
+                : null;
         try {
             RestClient.RequestBodySpec spec = http.post().uri(url).contentType(MediaType.APPLICATION_JSON);
-            if (ondc.keysReady()) {
-                spec = spec.header("Authorization", signatures.authorizationHeader(
-                        ondc.getSubscriberId(), ondc.getUniqueKeyId(), ondc.getSigningPrivateKey(), json));
+            if (authorization != null) {
+                spec = spec.header("Authorization", authorization);
             }
-            String response = spec.body(json).retrieve().body(String.class);
-            return Map.of("ok", true, "url", url, "response", response == null ? "" : response);
+            ResponseEntity<String> entity = spec.body(json).retrieve()
+                    .onStatus(HttpStatusCode::isError, (req, res) -> { })
+                    .toEntity(String.class);
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("ok", true);
+            result.put("officialHost", url.contains("ondc.org"));
+            result.put("url", url);
+            result.put("httpStatus", entity.getStatusCode().value());
+            result.put("signed", authorization != null);
+            result.put("signatureHint", DemoEvidenceService.signatureHint(authorization));
+            result.put("response", DemoEvidenceService.truncate(entity.getBody(), 400));
+            evidence.recordOndcLookup(result);
+            return result;
         } catch (RestClientException ex) {
             log.warn("ONDC lookup failed: {}", ex.getMessage());
-            return Map.of("ok", false, "url", url, "error", ex.getMessage());
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("ok", false);
+            result.put("officialHost", url.contains("ondc.org"));
+            result.put("url", url);
+            result.put("signed", authorization != null);
+            result.put("signatureHint", DemoEvidenceService.signatureHint(authorization));
+            result.put("error", ex.getMessage());
+            evidence.recordOndcLookup(result);
+            return result;
         }
     }
 

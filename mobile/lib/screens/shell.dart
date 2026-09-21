@@ -15,22 +15,24 @@ class MerchantShell extends StatefulWidget {
 class _MerchantShellState extends State<MerchantShell> {
   int index = 0;
 
+  void _go(int value) => setState(() => index = value);
+
   @override
   Widget build(BuildContext context) {
-    const pages = [
-      HomeScreen(),
-      PayScreen(),
-      OndcScreen(),
-      KhataScreen(),
-      InsightsScreen(),
+    final pages = [
+      HomeScreen(onNavigate: _go),
+      const PayScreen(),
+      const OndcScreen(),
+      const KhataScreen(),
+      const InsightsScreen(),
     ];
     return Scaffold(
       body: pages[index],
       bottomNavigationBar: NavigationBar(
         selectedIndex: index,
-        onDestinationSelected: (value) => setState(() => index = value),
+        onDestinationSelected: _go,
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.grid_view_outlined), selectedIcon: Icon(Icons.grid_view_rounded), label: 'Home'),
+          NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: 'Dashboard'),
           NavigationDestination(icon: Icon(Icons.contactless_outlined), selectedIcon: Icon(Icons.contactless), label: 'Pay'),
           NavigationDestination(icon: Icon(Icons.travel_explore_outlined), selectedIcon: Icon(Icons.travel_explore), label: 'ONDC'),
           NavigationDestination(icon: Icon(Icons.menu_book_outlined), selectedIcon: Icon(Icons.menu_book), label: 'Khata'),

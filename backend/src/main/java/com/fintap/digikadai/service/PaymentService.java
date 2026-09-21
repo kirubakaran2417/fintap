@@ -26,15 +26,18 @@ public class PaymentService {
     private final PaymentRepository payments;
     private final CustomerProfileRepository profiles;
     private final MastercardGatewayService mastercard;
+    private final com.fintap.digikadai.integration.razorpay.RazorpayGatewayService razorpay;
 
     public PaymentService(
             PaymentRepository payments,
             CustomerProfileRepository profiles,
-            MastercardGatewayService mastercard
+            MastercardGatewayService mastercard,
+            com.fintap.digikadai.integration.razorpay.RazorpayGatewayService razorpay
     ) {
         this.payments = payments;
         this.profiles = profiles;
         this.mastercard = mastercard;
+        this.razorpay = razorpay;
     }
 
     public RoutingAdviceDto route(BigDecimal amount) {
@@ -67,17 +70,30 @@ public class PaymentService {
                 ? (request.rail() == PaymentRail.CARD ? "Card customer" : "Walk-in")
                 : request.customerLabel());
         if (request.rail() == PaymentRail.CARD) {
-            MastercardGatewayService.CheckoutSession session = mastercard.createCheckout(request.amount());
-            payment.setReference(session.orderId());
-            payment.setGatewayOrderId(session.orderId());
-            payment.setGatewaySessionId(session.sessionId());
-            payment.setCheckoutUrl(session.checkoutUrl());
-            payment.setStatus(session.live() ? TransactionStatus.PENDING : TransactionStatus.SUCCESS);
-            payment.setNote(session.live() ? "MPGS checkout session" : "Local SoftPOS (Mastercard sandbox not configured)");
-            String token = "tok_" + Integer.toHexString(payment.getCustomerLabel().hashCode());
-            payment.setCardToken(token);
-            if (!session.live()) {
-                upsertProfile(merchant, token, payment.getCustomerLabel(), request.amount());
+            if (razorpay.ready()) {
+                var order = razorpay.createOrder(request.amount());
+                payment.setReference(order.orderId());
+                payment.setGatewayOrderId(order.orderId());
+                payment.setGatewaySessionId(order.orderId());
+                payment.setCheckoutUrl(order.checkoutUrl());
+                payment.setStatus(TransactionStatus.PENDING);
+                payment.setNote("Razorpay test order");
+            } else {
+                MastercardGatewayService.CheckoutSession session = mastercard.createCheckout(request.amount());
+                payment.setReference(session.orderId());
+                payment.setGatewayOrderId(session.orderId());
+                payment.setGatewaySessionId(session.sessionId());
+                payment.setCheckoutUrl(session.checkoutUrl());
+                payment.setStatus(session.live() ? TransactionStatus.PENDING : TransactionStatus.SUCCESS);
+                payment.setNote(session.live() ? "MPGS checkout session" : "Local SoftPOS (no Razorpay or Mastercard keys)");
+                if (!session.live()) {
+                    String token = "tok_" + Integer.toHexString(payment.getCustomerLabel().hashCode());
+                    payment.setCardToken(token);
+                    upsertProfile(merchant, token, payment.getCustomerLabel(), request.amount());
+                }
+            }
+            if (payment.getCardToken() == null) {
+                payment.setCardToken("tok_" + Integer.toHexString(payment.getCustomerLabel().hashCode()));
             }
         } else {
             payment.setReference("UPI-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
@@ -85,8 +101,24 @@ public class PaymentService {
         return toDto(payments.save(payment));
     }
 
+    @Transactional
+    public PaymentDto markSuccess(String gatewayOrderId) {
+        Payment payment = payments.findByGatewayOrderId(gatewayOrderId)
+                .orElseThrow(() -> new IllegalStateException("Payment not found"));
+        payment.setStatus(TransactionStatus.SUCCESS);
+        payment.setNote("Razorpay checkout completed");
+        if (payment.getCardToken() != null && payment.getMerchant() != null) {
+            upsertProfile(payment.getMerchant(), payment.getCardToken(), payment.getCustomerLabel(), payment.getAmount());
+        }
+        return toDto(payments.save(payment));
+    }
+
     public List<PaymentDto> recent(Merchant merchant) {
         return payments.findByMerchantOrderByCreatedAtDesc(merchant).stream().map(this::toDto).toList();
+    }
+
+    public List<Payment> all(Merchant merchant) {
+        return payments.findByMerchantOrderByCreatedAtDesc(merchant);
     }
 
     public List<Payment> todaySuccess(Merchant merchant) {

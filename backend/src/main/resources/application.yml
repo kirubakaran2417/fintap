@@ -28,8 +28,8 @@ app:
 
 integrations:
   ondc:
-    enabled: ${ONDC_ENABLED:false}
-    subscriber-id: ${ONDC_SUBSCRIBER_ID:}
+    enabled: ${ONDC_ENABLED:true}
+    subscriber-id: ${ONDC_SUBSCRIBER_ID:fintap.local}
     unique-key-id: ${ONDC_UNIQUE_KEY_ID:ukid-1}
     subscriber-url: ${ONDC_SUBSCRIBER_URL:http://localhost:8080/protocol/v1}
     signing-private-key: ${ONDC_SIGNING_PRIVATE_KEY:}
@@ -45,7 +45,7 @@ integrations:
     bpp-uri: ${ONDC_BPP_URI:http://localhost:8080/protocol/v1}
     country: IND
   mastercard:
-    gateway-enabled: ${MC_GATEWAY_ENABLED:false}
+    gateway-enabled: ${MC_GATEWAY_ENABLED:true}
     gateway-base-url: ${MC_GATEWAY_URL:https://test-gateway.mastercard.com}
     merchant-id: ${MC_MERCHANT_ID:}
     api-password: ${MC_API_PASSWORD:}
@@ -57,3 +57,8 @@ integrations:
     keystore-path: ${MC_KEYSTORE_PATH:}
     keystore-password: ${MC_KEYSTORE_PASSWORD:}
     key-alias: ${MC_KEY_ALIAS:}
+  razorpay:
+    enabled: ${RAZORPAY_ENABLED:true}
+    key-id: ${RAZORPAY_KEY_ID:}
+    key-secret: ${RAZORPAY_KEY_SECRET:}
+    base-url: ${RAZORPAY_BASE_URL:https://api.razorpay.com}

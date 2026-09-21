@@ -1,4 +1,5 @@
 import 'package:digi_kadai/main.dart';
+import 'package:digi_kadai/screens/evidence_screen.dart';
 import 'package:digi_kadai/theme.dart';
 import 'package:digi_kadai/widgets/format.dart';
 import 'package:digi_kadai/widgets/logo.dart';
@@ -64,7 +65,16 @@ class _OndcScreenState extends State<OndcScreen> {
   Widget build(BuildContext context) {
     final live = status?['live'] == true;
     return Scaffold(
-      appBar: AppBar(title: const FinTapMark(light: true, compact: true)),
+      appBar: AppBar(
+        title: const FinTapMark(light: true, compact: true),
+        actions: [
+          IconButton(
+            tooltip: 'Demo evidence',
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EvidenceScreen())),
+            icon: const Icon(Icons.fact_check_outlined),
+          ),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: _load,
         child: ListView(

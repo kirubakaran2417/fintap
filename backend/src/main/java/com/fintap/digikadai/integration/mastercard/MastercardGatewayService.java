@@ -4,9 +4,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fintap.digikadai.config.IntegrationProperties;
+import com.fintap.digikadai.integration.DemoEvidenceService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import java.math.BigDecimal;
@@ -23,11 +26,19 @@ public class MastercardGatewayService {
 
     private final IntegrationProperties properties;
     private final ObjectMapper mapper;
-    private final RestClient http = RestClient.create();
+    private final DemoEvidenceService evidence;
+    private final RestClient http;
 
-    public MastercardGatewayService(IntegrationProperties properties, ObjectMapper mapper) {
+    public MastercardGatewayService(
+            IntegrationProperties properties,
+            ObjectMapper mapper,
+            DemoEvidenceService evidence,
+            RestClient integrationRestClient
+    ) {
         this.properties = properties;
         this.mapper = mapper;
+        this.evidence = evidence;
+        this.http = integrationRestClient;
     }
 
     public Map<String, Object> status() {
@@ -38,14 +49,66 @@ public class MastercardGatewayService {
         body.put("merchantId", blank(mc.getMerchantId()));
         body.put("gatewayBaseUrl", mc.getGatewayBaseUrl());
         body.put("currency", mc.getCurrency());
-        body.put("note", "Tap on Phone NFC still needs the Mastercard CPoC/MPoC SDK on Android. This API creates MPGS sandbox sessions and accepts devicePayment payloads from that SDK.");
+        body.put("note", "Tap on Phone NFC still needs the Mastercard CPoC/MPoC SDK. MPGS sandbox sessions need merchant ID + API password from Merchant Manager or your acquirer.");
         return body;
+    }
+
+    public Map<String, Object> probeOfficialHost() {
+        IntegrationProperties.Mastercard mc = properties.getMastercard();
+        if (mc.gatewayReady()) {
+            try {
+                CheckoutSession session = createCheckout(new BigDecimal("1.00"));
+                return Map.of(
+                        "ok", session.live() && session.sessionId() != null && !session.sessionId().isBlank(),
+                        "live", session.live(),
+                        "sessionId", session.sessionId() == null ? "" : session.sessionId()
+                );
+            } catch (Exception ex) {
+                return Map.of("ok", false, "error", ex.getMessage());
+            }
+        }
+        String url = trimSlash(mc.getGatewayBaseUrl()) + "/api/rest/version/" + mc.getApiVersion() + "/merchant/TEST/session";
+        try {
+            ResponseEntity<String> entity = http.post()
+                    .uri(url)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body("{}")
+                    .retrieve()
+                    .onStatus(HttpStatusCode::isError, (req, res) -> { })
+                    .toEntity(String.class);
+            Map<String, Object> proof = new LinkedHashMap<>();
+            proof.put("ok", false);
+            proof.put("live", false);
+            proof.put("officialHost", url.contains("mastercard.com"));
+            proof.put("url", url);
+            proof.put("httpStatus", entity.getStatusCode().value());
+            proof.put("note", "Official Mastercard sandbox host responded. Paste merchant ID + API password to create a real session.");
+            proof.put("response", DemoEvidenceService.truncate(entity.getBody(), 400));
+            evidence.recordMastercard(proof);
+            return proof;
+        } catch (Exception ex) {
+            Map<String, Object> proof = new LinkedHashMap<>();
+            proof.put("ok", false);
+            proof.put("live", false);
+            proof.put("officialHost", url.contains("mastercard.com"));
+            proof.put("url", url);
+            proof.put("error", ex.getMessage());
+            evidence.recordMastercard(proof);
+            return proof;
+        }
     }
 
     public CheckoutSession createCheckout(BigDecimal amount) {
         IntegrationProperties.Mastercard mc = properties.getMastercard();
         String orderId = "DK-" + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase();
         if (!mc.gatewayReady()) {
+            evidence.recordMastercard(Map.of(
+                    "ok", false,
+                    "live", false,
+                    "officialHost", false,
+                    "orderId", orderId,
+                    "note", "Mastercard gateway credentials are not set; using local collect."
+            ));
             return new CheckoutSession(orderId, "SESSION-LOCAL", null, false, "Mastercard gateway credentials are not set; using local collect.");
         }
         ObjectNode body = mapper.createObjectNode();
@@ -70,9 +133,28 @@ public class MastercardGatewayService {
             JsonNode node = mapper.readTree(raw == null ? "{}" : raw);
             String sessionId = node.path("session").path("id").asText();
             String checkout = trimSlash(mc.getGatewayBaseUrl()) + "/checkout/pay/" + sessionId;
+            Map<String, Object> proof = new LinkedHashMap<>();
+            proof.put("ok", !sessionId.isBlank());
+            proof.put("live", true);
+            proof.put("officialHost", url.contains("mastercard.com"));
+            proof.put("url", url);
+            proof.put("orderId", orderId);
+            proof.put("sessionId", sessionId);
+            proof.put("result", node.path("result").asText(null));
+            proof.put("checkoutUrl", checkout);
+            proof.put("response", DemoEvidenceService.truncate(raw, 400));
+            evidence.recordMastercard(proof);
             return new CheckoutSession(orderId, sessionId, checkout, true, raw);
         } catch (Exception ex) {
             log.warn("MPGS checkout session failed: {}", ex.getMessage());
+            evidence.recordMastercard(Map.of(
+                    "ok", false,
+                    "live", false,
+                    "officialHost", url.contains("mastercard.com"),
+                    "url", url,
+                    "orderId", orderId,
+                    "error", ex.getMessage()
+            ));
             throw new IllegalStateException("Mastercard gateway session failed: " + ex.getMessage());
         }
     }

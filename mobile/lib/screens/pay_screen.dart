@@ -24,8 +24,9 @@ class _PayScreenState extends State<PayScreen> {
   void initState() {
     super.initState();
     api.integrationStatus().then((status) {
+      final rzp = status['razorpay'] as Map<String, dynamic>? ?? {};
       final mc = status['mastercardGateway'] as Map<String, dynamic>? ?? {};
-      setState(() => gatewayReady = mc['gatewayReady'] == true);
+      setState(() => gatewayReady = rzp['ready'] == true || mc['gatewayReady'] == true);
     }).catchError((_) {});
   }
 
@@ -67,7 +68,7 @@ class _PayScreenState extends State<PayScreen> {
       setState(() => lastPayment = payment);
       if (!mounted) return;
       final checkout = payment['checkoutUrl']?.toString();
-      final hosted = checkout != null && checkout.contains('checkout/pay');
+      final hosted = checkout != null && checkout.isNotEmpty && (checkout.contains('checkout/pay') || checkout.contains('razorpay') || checkout.contains('/pay/'));
       await showModalBottomSheet<void>(
         context: context,
         showDragHandle: true,
@@ -78,7 +79,7 @@ class _PayScreenState extends State<PayScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                rail == 'CARD' ? (hosted ? 'Mastercard checkout' : 'Card tap collected') : 'UPI collected',
+                rail == 'CARD' ? (hosted ? 'Open live checkout' : 'Card tap collected') : 'UPI collected',
                 style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 8),
@@ -87,15 +88,15 @@ class _PayScreenState extends State<PayScreen> {
               const SizedBox(height: 8),
               Text(
                 hosted
-                    ? 'Open the Mastercard hosted page to finish this sandbox charge.'
-                    : 'Amount is already recorded in FinTap. Mastercard hosted checkout appears only after MPGS merchant keys are set.',
+                    ? 'Finish this charge on the Razorpay test checkout (or Mastercard if those keys are set).'
+                    : 'Amount is already recorded locally.',
                 style: const TextStyle(color: FtColors.muted),
               ),
               if (hosted) ...[
                 const SizedBox(height: 12),
                 FilledButton(
                   onPressed: () => launchUrl(Uri.parse(checkout), mode: LaunchMode.externalApplication),
-                  child: const Text('Open Mastercard checkout'),
+                  child: const Text('Open checkout'),
                 ),
               ],
               const SizedBox(height: 8),
@@ -122,7 +123,7 @@ class _PayScreenState extends State<PayScreen> {
           const SizedBox(height: 18),
           Text('₹$amount', style: const TextStyle(fontSize: 48, fontWeight: FontWeight.w800, letterSpacing: -1.2)),
           Text(
-            gatewayReady ? 'Mastercard MPGS sandbox is connected' : 'Local SoftPOS · add MC_GATEWAY keys to go live',
+            gatewayReady ? 'Razorpay test checkout is live' : 'Local SoftPOS · add Razorpay or MPGS keys',
             style: const TextStyle(color: FtColors.muted),
           ),
           const SizedBox(height: 14),
@@ -172,7 +173,7 @@ class _PayScreenState extends State<PayScreen> {
             padding: const EdgeInsets.all(16),
             child: FilledButton(
               onPressed: busy ? null : _collect,
-              child: Text(rail == 'CARD' ? (gatewayReady ? 'Create Mastercard session' : 'Collect card (local)') : 'Collect UPI'),
+              child: Text(rail == 'CARD' ? (gatewayReady ? 'Create Razorpay order' : 'Collect card (local)') : 'Collect UPI'),
             ),
           ),
         ],

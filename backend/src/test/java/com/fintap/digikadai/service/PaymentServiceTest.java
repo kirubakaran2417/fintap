@@ -12,7 +12,7 @@ class PaymentServiceTest {
 
     @Test
     void recommendsCardWhenTicketIsLarge() {
-        PaymentService service = new PaymentService(mock(), mock(), mock());
+        PaymentService service = new PaymentService(mock(), mock(), mock(), mock());
         assertEquals(PaymentRail.CARD, service.route(new BigDecimal("350")).recommendedRail());
         assertEquals(PaymentRail.UPI, service.route(new BigDecimal("40")).recommendedRail());
     }

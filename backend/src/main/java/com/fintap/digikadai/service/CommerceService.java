@@ -6,6 +6,8 @@ import com.fintap.digikadai.domain.Merchant;
 import com.fintap.digikadai.domain.OndcOrder;
 import com.fintap.digikadai.domain.OndcOrderStatus;
 import com.fintap.digikadai.domain.Payment;
+import com.fintap.digikadai.domain.PaymentRail;
+import com.fintap.digikadai.domain.TransactionStatus;
 import com.fintap.digikadai.dto.CatalogGenerateRequest;
 import com.fintap.digikadai.dto.CatalogItemDto;
 import com.fintap.digikadai.dto.CustomerProfileDto;
@@ -23,9 +25,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.TextStyle;
+import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class CommerceService {
@@ -60,17 +69,80 @@ public class CommerceService {
     }
 
     public HomeSummaryDto home(Merchant merchant) {
-        List<Payment> today = payments.todaySuccess(merchant);
-        BigDecimal revenue = today.stream().map(Payment::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
-        long customers = today.stream().map(Payment::getCustomerLabel).distinct().count();
-        BigDecimal ondc = orders.findByMerchantOrderByCreatedAtDesc(merchant).stream()
-                .map(OndcOrder::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        ZoneId zone = ZoneId.of("Asia/Kolkata");
+        LocalDate today = LocalDate.now(zone);
+        Instant dayStart = today.atStartOfDay(zone).toInstant();
+        Instant weekStart = today.minusDays(6).atStartOfDay(zone).toInstant();
+        Instant monthStart = today.withDayOfMonth(1).atStartOfDay(zone).toInstant();
+
+        List<Payment> all = payments.all(merchant);
+        List<Payment> successful = all.stream().filter(p -> p.getStatus() == TransactionStatus.SUCCESS).toList();
+        List<Payment> todayPays = successful.stream()
+                .filter(p -> p.getCreatedAt() != null && !p.getCreatedAt().isBefore(dayStart))
+                .toList();
+
+        BigDecimal revenue = sum(todayPays);
+        long customers = todayPays.stream().map(Payment::getCustomerLabel).distinct().count();
+        BigDecimal weekRevenue = sum(successful.stream()
+                .filter(p -> p.getCreatedAt() != null && !p.getCreatedAt().isBefore(weekStart))
+                .toList());
+        BigDecimal monthRevenue = sum(successful.stream()
+                .filter(p -> p.getCreatedAt() != null && !p.getCreatedAt().isBefore(monthStart))
+                .toList());
+        BigDecimal cardToday = sum(todayPays.stream().filter(p -> p.getRail() == PaymentRail.CARD).toList());
+        BigDecimal upiToday = sum(todayPays.stream().filter(p -> p.getRail() == PaymentRail.UPI).toList());
+        long pending = all.stream().filter(p -> p.getStatus() == TransactionStatus.PENDING).count();
+
+        List<OndcOrder> ondcOrders = orders.findByMerchantOrderByCreatedAtDesc(merchant);
+        BigDecimal ondc = ondcOrders.stream().map(OndcOrder::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+        Set<OndcOrderStatus> open = EnumSet.of(
+                OndcOrderStatus.NEW, OndcOrderStatus.ACCEPTED, OndcOrderStatus.PACKED, OndcOrderStatus.DISPATCHED);
+        long ondcOpen = ondcOrders.stream().filter(o -> open.contains(o.getStatus())).count();
+
+        var items = catalog.findByMerchantOrderByNameAsc(merchant);
+        long published = items.stream().filter(CatalogItem::isPublishedToOndc).count();
+
         BigDecimal outstanding = khata.findByMerchantOrderByCreatedAtDesc(merchant).stream()
                 .map(entry -> entry.isCredit() ? entry.getAmount().negate() : entry.getAmount())
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        List<HomeSummaryDto.DayPoint> last7 = new ArrayList<>();
+        for (int i = 6; i >= 0; i--) {
+            LocalDate day = today.minusDays(i);
+            Instant start = day.atStartOfDay(zone).toInstant();
+            Instant end = day.plusDays(1).atStartOfDay(zone).toInstant();
+            List<Payment> dayPays = successful.stream()
+                    .filter(p -> p.getCreatedAt() != null && !p.getCreatedAt().isBefore(start) && p.getCreatedAt().isBefore(end))
+                    .toList();
+            last7.add(new HomeSummaryDto.DayPoint(
+                    day.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.ENGLISH),
+                    sum(dayPays),
+                    dayPays.size()
+            ));
+        }
+
         String nudge = payments.route(new BigDecimal("350")).reason();
-        return new HomeSummaryDto(revenue, customers, ondc, outstanding, nudge, payments.recent(merchant).stream().limit(8).toList());
+        return new HomeSummaryDto(
+                revenue,
+                customers,
+                weekRevenue,
+                monthRevenue,
+                cardToday,
+                upiToday,
+                pending,
+                ondc,
+                ondcOpen,
+                published,
+                items.size(),
+                outstanding,
+                nudge,
+                last7,
+                payments.recent(merchant).stream().limit(8).toList()
+        );
+    }
+
+    private BigDecimal sum(List<Payment> rows) {
+        return rows.stream().map(Payment::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     public List<CatalogItemDto> catalog(Merchant merchant) {
