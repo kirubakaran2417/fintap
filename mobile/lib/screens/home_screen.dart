@@ -64,19 +64,130 @@ class _HomeScreenState extends State<HomeScreen> {
     return 'Good evening';
   }
 
+  void _showMiBankDetails(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: const BoxDecoration(
+                    color: FtColors.navy,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.account_balance, color: FtColors.gold, size: 24),
+                ),
+                const SizedBox(width: 12),
+                const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('MI Bank', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                    Text('Primary Acquiring & Settlement Partner', style: TextStyle(fontSize: 12, color: FtColors.muted)),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 12),
+            _bankDetailRow('Bank Partner', 'MI Bank (Merchant Acquiring Division)'),
+            _bankDetailRow('Merchant Account', '•••• •••• 4821'),
+            _bankDetailRow('IFSC Code', 'MIBN0001892'),
+            _bankDetailRow('SoftPOS Switch', 'Mastercard / NPCI Direct Gateway'),
+            _bankDetailRow('Settlement Speed', 'T+0 Instant Auto-Sweep'),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(backgroundColor: FtColors.navy),
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.check, size: 18),
+                label: const Text('Close'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _bankDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 12, color: FtColors.muted)),
+          Flexible(
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        titleSpacing: 10,
         title: const FinTapMark(light: true, compact: true),
         actions: [
+          Center(
+            child: Tooltip(
+              message: 'MI Bank — Partner Bank',
+              child: MiBankLogo(
+                onTap: () => _showMiBankDetails(context),
+              ),
+            ),
+          ),
           IconButton(
+            visualDensity: VisualDensity.compact,
             tooltip: 'Demo evidence',
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EvidenceScreen())),
             icon: const Icon(Icons.fact_check_outlined),
           ),
-          IconButton(tooltip: 'Refresh', onPressed: _load, icon: const Icon(Icons.refresh)),
-          IconButton(tooltip: 'Sign out', onPressed: _logout, icon: const Icon(Icons.logout)),
+          PopupMenuButton<String>(
+            tooltip: 'More actions',
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              if (value == 'refresh') _load();
+              if (value == 'logout') _logout();
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'refresh',
+                child: Row(
+                  children: [
+                    Icon(Icons.refresh, size: 18),
+                    SizedBox(width: 8),
+                    Text('Refresh data'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout, size: 18),
+                    SizedBox(width: 8),
+                    Text('Sign out'),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ],
       ),
       body: data == null

@@ -54,8 +54,8 @@ class _LogoPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final rect = Offset.zero & size;
     final bg = Paint()
-      ..shader = LinearGradient(
-        colors: const [FtColors.navy, FtColors.primaryDark],
+      ..shader = const LinearGradient(
+        colors: [FtColors.navy, FtColors.primaryDark],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ).createShader(rect);
@@ -94,3 +94,77 @@ class _LogoPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _LogoPainter oldDelegate) => oldDelegate.light != light;
 }
+
+class MiBankLogo extends StatelessWidget {
+  const MiBankLogo({super.key, this.compact = true, this.onTap});
+
+  final bool compact;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final content = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.28),
+          width: 0.8,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(2),
+            decoration: const BoxDecoration(
+              color: FtColors.gold,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.account_balance_rounded,
+              size: 10,
+              color: FtColors.navy,
+            ),
+          ),
+          const SizedBox(width: 4),
+          const Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: 'MI',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 10,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+                TextSpan(
+                  text: ' BANK',
+                  style: TextStyle(
+                    color: FtColors.gold,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 9.5,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (onTap != null) {
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: content,
+      );
+    }
+    return content;
+  }
+}
+
