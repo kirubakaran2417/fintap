@@ -32,6 +32,7 @@ public class Payment {
     private TransactionStatus status;
 
     private String customerLabel;
+    private String customerMobile;
     private String cardToken;
     private String reference;
     private String note;
@@ -85,6 +86,14 @@ public class Payment {
 
     public void setCustomerLabel(String customerLabel) {
         this.customerLabel = customerLabel;
+    }
+
+    public String getCustomerMobile() {
+        return customerMobile;
+    }
+
+    public void setCustomerMobile(String customerMobile) {
+        this.customerMobile = customerMobile;
     }
 
     public String getCardToken() {
