@@ -66,12 +66,12 @@ integrations:
     api-version: ${MC_API_VERSION:100}
     currency: INR
     checkout-script-url: ${MC_CHECKOUT_SCRIPT_URL:}
-    developers-enabled: ${MC_DEV_ENABLED:false}
+    developers-enabled: ${MC_DEV_ENABLED:true}
     developers-base-url: ${MC_DEV_BASE_URL:https://sandbox.api.mastercard.com}
-    consumer-key: ${MC_CONSUMER_KEY:}
-    keystore-path: ${MC_KEYSTORE_PATH:C:\\Users\\SA10732542\\Downloads\\ganesanmail2me_Sandbox_API_Keys\\ganesanmail2me-sandbox.p12}
-    keystore-password: ${MC_KEYSTORE_PASSWORD:}
-    key-alias: ${MC_KEY_ALIAS:}
+    consumer-key: ${MC_CONSUMER_KEY:MCD_Sandbox_fintap_API_Keys}
+    keystore-path: ${MC_KEYSTORE_PATH:keys/FinTap-sandbox-signing.p12}
+    keystore-password: ${MC_KEYSTORE_PASSWORD:keystorepassword}
+    key-alias: ${MC_KEY_ALIAS:keyalias}
   razorpay:
     enabled: ${RAZORPAY_ENABLED:true}
     key-id: ${RAZORPAY_KEY_ID:}

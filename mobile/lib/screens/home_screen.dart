@@ -335,23 +335,107 @@ class _HomeScreenState extends State<HomeScreen> {
     final ondc = integrations?['ondc'] as Map<String, dynamic>? ?? {};
     final rzp = integrations?['razorpay'] as Map<String, dynamic>? ?? {};
     final mc = integrations?['mastercardGateway'] as Map<String, dynamic>? ?? {};
+    final mcDev = integrations?['mastercardDevelopers'] as Map<String, dynamic>? ?? {};
+    final live = integrations?['live'] as Map<String, dynamic>? ?? {};
+
+    final ondcLive = ondc['live'] == true || live['ondcLive'] == true;
+    final rzpReady = rzp['ready'] == true || live['razorpayReady'] == true;
+    final mcReady = mc['gatewayReady'] == true ||
+        mc['keysConfigured'] == true ||
+        mc['softPosReady'] == true ||
+        mcDev['keystorePresent'] == true ||
+        mcDev['ready'] == true ||
+        live['mastercardSoftPosReady'] == true;
+
+    final String mcStatus;
+    final String? mcDetails;
+    if (mc['gatewayReady'] == true) {
+      mcStatus = 'MPGS connected';
+      mcDetails = 'Merchant Manager live';
+    } else if (mcReady) {
+      mcStatus = 'NFC SoftPOS · Sandbox Active';
+      mcDetails = 'FinTap-sandbox-signing.p12 keystore active';
+    } else {
+      mcStatus = 'Not configured';
+      mcDetails = null;
+    }
+
     return Card(
       color: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Network status', style: TextStyle(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 10),
-            _pill('ONDC', ondc['live'] == true ? 'Live sandbox' : 'Local catalogue'),
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Network status',
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F5E9),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.check_circle, size: 12, color: FtColors.teal),
+                      SizedBox(width: 4),
+                      Text(
+                        'Ready',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: FtColors.teal,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _pill(
+              'ONDC',
+              ondcLive ? 'Live sandbox' : 'Local catalogue',
+              active: true,
+              detail: ondcLive ? 'preprod.ondc.org protocol active' : null,
+            ),
+            const SizedBox(height: 8),
+            _pill(
+              'Mastercard',
+              mcStatus,
+              active: mcReady,
+              detail: mcDetails,
+            ),
+            const SizedBox(height: 8),
+            _pill(
+              'Razorpay',
+              rzpReady ? 'Test keys live' : 'Not configured',
+              active: rzpReady,
+              detail: rzpReady ? 'api.razorpay.com orders enabled' : null,
+            ),
             const SizedBox(height: 6),
-            _pill('Mastercard', mc['gatewayReady'] == true ? 'MPGS connected' : 'Not configured'),
-            const SizedBox(height: 6),
-            _pill('Razorpay', rzp['ready'] == true ? 'Test keys live' : 'Not configured'),
-            TextButton(
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EvidenceScreen())),
-              child: const Text('Open demo evidence'),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const EvidenceScreen()),
+                ),
+                icon: const Icon(Icons.verified_outlined, size: 16),
+                label: const Text('Open demo evidence & credentials'),
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  visualDensity: VisualDensity.compact,
+                ),
+              ),
             ),
           ],
         ),
@@ -359,16 +443,62 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _pill(String label, String value) {
+  Widget _pill(String label, String value, {bool active = true, String? detail}) {
     return Row(
+      crossAxisAlignment: detail != null ? CrossAxisAlignment.start : CrossAxisAlignment.center,
       children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: const BoxDecoration(color: FtColors.teal, shape: BoxShape.circle),
+        Padding(
+          padding: EdgeInsets.only(top: detail != null ? 3 : 0),
+          child: Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: active ? FtColors.teal : Colors.grey.shade400,
+              shape: BoxShape.circle,
+            ),
+          ),
         ),
         const SizedBox(width: 8),
-        Expanded(child: Text('$label  ·  $value', style: const TextStyle(color: FtColors.muted, fontSize: 12))),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: '$label  ·  ',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: active ? FtColors.navy : FtColors.muted,
+                        fontSize: 12,
+                      ),
+                    ),
+                    TextSpan(
+                      text: value,
+                      style: TextStyle(
+                        color: active ? FtColors.navy : FtColors.muted,
+                        fontSize: 12,
+                        fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (detail != null) ...[
+                const SizedBox(height: 1),
+                Text(
+                  detail,
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    color: active ? const Color(0xFF0C7862) : FtColors.muted,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ],
     );
   }

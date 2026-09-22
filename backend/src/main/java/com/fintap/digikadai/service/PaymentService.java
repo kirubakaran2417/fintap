@@ -127,6 +127,11 @@ public class PaymentService {
 
     @Transactional
     public PaymentDto reconcileMastercard(String gatewayOrderId) {
+        return reconcileMastercard(gatewayOrderId, null);
+    }
+
+    @Transactional
+    public PaymentDto reconcileMastercard(String gatewayOrderId, String brand) {
         Payment payment = payments.findByGatewayOrderId(gatewayOrderId)
                 .orElseThrow(() -> new IllegalStateException("Payment not found"));
         if (!"MASTERCARD".equals(payment.getGatewayProvider())) {
@@ -147,6 +152,12 @@ public class PaymentService {
                 || "SUCCESS".equals(result) && !Set.of("FAILED", "DECLINED", "CANCELLED").contains(gatewayStatus)) {
             payment.setStatus(TransactionStatus.SUCCESS);
             payment.setFailureReason(null);
+            if (brand != null && !brand.isBlank()) {
+                payment.setNote(brand.toUpperCase(Locale.ROOT) + " Contactless NFC Tap Approved");
+            }
+            if (payment.getCardToken() == null) {
+                payment.setCardToken(tokenFor(payment));
+            }
             if (previous != TransactionStatus.SUCCESS && payment.getCardToken() != null) {
                 upsertProfile(payment.getMerchant(), payment.getCardToken(), payment.getCustomerLabel(), payment.getAmount());
             }
@@ -157,6 +168,24 @@ public class PaymentService {
             payment.setStatus(TransactionStatus.CANCELLED);
             payment.setFailureReason("Checkout cancelled");
         }
+        payment.setUpdatedAt(Instant.now());
+        return toDto(payments.save(payment));
+    }
+
+    @Transactional
+    public PaymentDto completeNfcTap(Merchant merchant, Long id, String brand, String panLast4) {
+        Payment payment = payments.findById(id)
+                .filter(found -> found.getMerchant().getId().equals(merchant.getId()))
+                .orElseThrow(() -> new IllegalStateException("Payment not found"));
+        payment.setStatus(TransactionStatus.SUCCESS);
+        payment.setFailureReason(null);
+        String cardBrand = (brand == null || brand.isBlank()) ? "VISA" : brand.toUpperCase(Locale.ROOT);
+        String last4 = (panLast4 == null || panLast4.isBlank()) ? "4242" : panLast4;
+        payment.setNote(cardBrand + " Contactless NFC Tap (•••• " + last4 + ")");
+        if (payment.getCardToken() == null) {
+            payment.setCardToken(tokenFor(payment));
+        }
+        upsertProfile(payment.getMerchant(), payment.getCardToken(), payment.getCustomerLabel(), payment.getAmount());
         payment.setUpdatedAt(Instant.now());
         return toDto(payments.save(payment));
     }

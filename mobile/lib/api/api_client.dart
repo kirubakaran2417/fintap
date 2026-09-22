@@ -88,6 +88,16 @@ class ApiClient {
   Future<Map<String, dynamic>> paymentStatus(int id, {bool refresh = true}) =>
       _get('/api/payments/$id/status?refresh=$refresh');
 
+  Future<Map<String, dynamic>> submitNfcTap(
+    int id, {
+    String brand = 'VISA',
+    String panLast4 = '4242',
+  }) =>
+      _post('/api/payments/$id/nfc-tap', {
+        'brand': brand,
+        'panLast4': panLast4,
+      });
+
   Future<Map<String, dynamic>> submitMastercardDevicePayment(
     int id,
     String sessionId,

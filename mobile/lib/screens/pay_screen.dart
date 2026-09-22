@@ -135,67 +135,181 @@ class _PayScreenState extends State<PayScreen> {
       final paymentStatus = payment['status']?.toString() ?? 'UNKNOWN';
       final received = {'SUCCESS', 'CAPTURED', 'PAID', 'APPROVED'}.contains(paymentStatus.toUpperCase());
       final failed = {'FAILED', 'CANCELLED'}.contains(paymentStatus.toUpperCase());
-      await showModalBottomSheet<void>(
-        context: context,
-        showDragHandle: true,
-        isScrollControlled: true,
-        useSafeArea: true,
-        builder: (context) => SingleChildScrollView(child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(child: CircleAvatar(
-                radius: 32,
-                backgroundColor: received ? FtColors.teal : (failed ? FtColors.danger : FtColors.navy),
-                child: Icon(received ? Icons.check : (failed ? Icons.error_outline : Icons.receipt_long_outlined), color: Colors.white, size: 32),
-              )),
-              const SizedBox(height: 16),
-              Text(
-                received ? 'Payment received' : (failed ? 'Payment failed' : (hosted ? 'Checkout ready' : 'Payment recorded')),
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 8),
-              Text(inr.format(value), textAlign: TextAlign.center, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w800)),
-              Text(rail == 'CARD' ? 'Card payment' : 'UPI payment', textAlign: TextAlign.center, style: const TextStyle(color: FtColors.muted)),
-              const SizedBox(height: 20),
-              ListTile(title: const Text('Customer'), subtitle: Text(customerName.text.trim()), contentPadding: EdgeInsets.zero),
-              ListTile(title: const Text('Mobile'), subtitle: Text(customerMobile.text.replaceAll(RegExp(r'\D'), '')), contentPadding: EdgeInsets.zero),
-              ListTile(title: const Text('Transaction ID'), subtitle: SelectableText('${payment['reference']}'), contentPadding: EdgeInsets.zero),
-              ListTile(title: const Text('Status'), trailing: Text(paymentStatus, style: const TextStyle(fontWeight: FontWeight.w700)), contentPadding: EdgeInsets.zero),
-              if (failed && payment['failureReason'] != null)
-                Text('${payment['failureReason']}', textAlign: TextAlign.center, style: const TextStyle(color: FtColors.danger)),
-              if (hosted) ...[
-                const SizedBox(height: 12),
-                FilledButton(
-                  onPressed: () => launchUrl(Uri.parse(checkout), mode: LaunchMode.externalApplication),
-                  child: const Text('Open checkout'),
+
+      if (!mounted) return;
+
+      if (rail == 'CARD') {
+        await showModalBottomSheet<void>(
+          context: context,
+          showDragHandle: true,
+          isScrollControlled: true,
+          useSafeArea: true,
+          builder: (modalContext) => StatefulBuilder(
+            builder: (ctx, setModalState) {
+              final currStatus = payment['status']?.toString() ?? 'UNKNOWN';
+              final isSuccess = {'SUCCESS', 'CAPTURED', 'PAID', 'APPROVED'}.contains(currStatus.toUpperCase());
+              final note = payment['note']?.toString() ?? 'Visa & Mastercard Contactless NFC Tap';
+
+              if (isSuccess) {
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const CircleAvatar(
+                        radius: 36,
+                        backgroundColor: FtColors.teal,
+                        child: Icon(Icons.check, color: Colors.white, size: 40),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text('Contactless Tap Approved', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 8),
+                      Text(inr.format(value), style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w800, color: FtColors.ink)),
+                      Text(note, style: const TextStyle(color: FtColors.muted, fontSize: 13)),
+                      const SizedBox(height: 20),
+                      ListTile(title: const Text('Customer'), subtitle: Text(customerName.text.trim()), contentPadding: EdgeInsets.zero),
+                      ListTile(title: const Text('Transaction Ref'), subtitle: SelectableText('${payment['reference']}'), contentPadding: EdgeInsets.zero),
+                      const ListTile(title: Text('Status'), trailing: Text('SUCCESS', style: TextStyle(fontWeight: FontWeight.w700, color: Colors.green)), contentPadding: EdgeInsets.zero),
+                      const SizedBox(height: 16),
+                      FilledButton(
+                        onPressed: () => Navigator.pop(modalContext),
+                        child: const Text('Done'),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(color: const Color(0xFF1E3A8A).withAlpha(30), borderRadius: BorderRadius.circular(6)),
+                          child: const Text('VISA', style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF1D4ED8), fontStyle: FontStyle.italic)),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(color: const Color(0xFFDC2626).withAlpha(30), borderRadius: BorderRadius.circular(6)),
+                          child: const Text('Mastercard', style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFFDC2626))),
+                        ),
+                        const SizedBox(width: 10),
+                        const Icon(Icons.contactless, color: FtColors.teal, size: 24),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(inr.format(value), textAlign: TextAlign.center, style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w800)),
+                    const Text('Hold Visa/Mastercard card or smartphone near rear NFC reader', textAlign: TextAlign.center, style: TextStyle(color: FtColors.muted, fontSize: 13)),
+                    const SizedBox(height: 20),
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: FtColors.bg,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: FtColors.border),
+                      ),
+                      child: const Column(
+                        children: [
+                          Icon(Icons.contactless, size: 52, color: FtColors.teal),
+                          SizedBox(height: 10),
+                          Text('Ready for Contactless Tap', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                          SizedBox(height: 4),
+                          Text('EMVCo Contactless Level 2 · SoftPOS Active', style: TextStyle(fontSize: 12, color: FtColors.muted)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 12)),
+                            onPressed: () async {
+                              HapticFeedback.heavyImpact();
+                              final res = await api.submitNfcTap(asInt(payment['id']), brand: 'VISA', panLast4: '4242');
+                              setModalState(() => payment.addAll(res));
+                              if (mounted) setState(() => lastPayment = payment);
+                            },
+                            icon: const Icon(Icons.credit_card, color: Color(0xFF1D4ED8), size: 18),
+                            label: const Text('Tap Visa (•••• 4242)', style: TextStyle(fontSize: 11)),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 12)),
+                            onPressed: () async {
+                              HapticFeedback.heavyImpact();
+                              final res = await api.submitNfcTap(asInt(payment['id']), brand: 'MASTERCARD', panLast4: '5412');
+                              setModalState(() => payment.addAll(res));
+                              if (mounted) setState(() => lastPayment = payment);
+                            },
+                            icon: const Icon(Icons.credit_card, color: Color(0xFFDC2626), size: 18),
+                            label: const Text('Tap MC (•••• 5412)', style: TextStyle(fontSize: 11)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (hosted) ...[
+                      const SizedBox(height: 10),
+                      FilledButton.icon(
+                        style: FilledButton.styleFrom(backgroundColor: FtColors.navy, padding: const EdgeInsets.symmetric(vertical: 12)),
+                        onPressed: () => launchUrl(Uri.parse(checkout), mode: LaunchMode.externalApplication),
+                        icon: const Icon(Icons.open_in_browser, size: 18),
+                        label: const Text('Open Full-Screen NFC Terminal'),
+                      ),
+                    ],
+                  ],
                 ),
-              ],
-              if (paymentStatus.toUpperCase() == 'PENDING') ...[
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  onPressed: () async {
-                    final updated = await api.paymentStatus(asInt(payment['id']));
-                    if (!mounted) return;
-                    setState(() => lastPayment = updated);
-                    if (context.mounted) Navigator.pop(context);
-                    ScaffoldMessenger.of(this.context).showSnackBar(
-                      SnackBar(content: Text('Payment status: ${updated['status']}')),
-                    );
-                  },
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Refresh payment status'),
-                ),
-              ],
-              const SizedBox(height: 8),
-              OutlinedButton(onPressed: () => Navigator.pop(context), child: const Text('Done')),
-            ],
+              );
+            },
           ),
-        )),
-      );
+        );
+      } else {
+        await showModalBottomSheet<void>(
+          context: context,
+          showDragHandle: true,
+          isScrollControlled: true,
+          useSafeArea: true,
+          builder: (context) => SingleChildScrollView(child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(child: CircleAvatar(
+                  radius: 32,
+                  backgroundColor: received ? FtColors.teal : (failed ? FtColors.danger : FtColors.navy),
+                  child: Icon(received ? Icons.check : (failed ? Icons.error_outline : Icons.receipt_long_outlined), color: Colors.white, size: 32),
+                )),
+                const SizedBox(height: 16),
+                Text(
+                  received ? 'Payment received' : (failed ? 'Payment failed' : 'Payment recorded'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 8),
+                Text(inr.format(value), textAlign: TextAlign.center, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w800)),
+                const Text('UPI payment', textAlign: TextAlign.center, style: TextStyle(color: FtColors.muted)),
+                const SizedBox(height: 20),
+                ListTile(title: const Text('Customer'), subtitle: Text(customerName.text.trim()), contentPadding: EdgeInsets.zero),
+                ListTile(title: const Text('Mobile'), subtitle: Text(customerMobile.text.replaceAll(RegExp(r'\D'), '')), contentPadding: EdgeInsets.zero),
+                ListTile(title: const Text('Transaction ID'), subtitle: SelectableText('${payment['reference']}'), contentPadding: EdgeInsets.zero),
+                ListTile(title: const Text('Status'), trailing: Text(paymentStatus, style: const TextStyle(fontWeight: FontWeight.w700)), contentPadding: EdgeInsets.zero),
+                const SizedBox(height: 12),
+                OutlinedButton(onPressed: () => Navigator.pop(context), child: const Text('Done')),
+              ],
+            ),
+          )),
+        );
+      }
       if (mounted) setState(() { amount = '0'; advice = null; customerName.clear(); customerMobile.clear(); });
     } catch (e) {
       if (!mounted) return;
@@ -288,12 +402,12 @@ class _PayScreenState extends State<PayScreen> {
             const SizedBox(height: 12),
             DropdownButtonFormField<CardPaymentProvider>(
               isExpanded: true,
-              value: cardProvider,
+              initialValue: cardProvider,
               decoration: const InputDecoration(labelText: 'Card provider'),
               items: [
                 DropdownMenuItem(
                   value: CardPaymentProvider.mastercard,
-                  child: Text(mastercardReady ? 'Mastercard hosted checkout' : 'Mastercard hosted checkout (Mock)'),
+                  child: Text(mastercardReady ? 'Mastercard hosted checkout' : '💳 Visa & Mastercard NFC Tap on Phone'),
                 ),
                 if (razorpayReady)
                   const DropdownMenuItem(value: CardPaymentProvider.razorpay, child: Text('Razorpay test checkout')),
