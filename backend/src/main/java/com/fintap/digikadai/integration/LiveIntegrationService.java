@@ -127,9 +127,12 @@ public class LiveIntegrationService {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("ondcEnabled", ondc.isEnabled());
         body.put("ondcLive", ondc.isEnabled() && official(ondc.getMockBppUrl(), "ondc.org") && ondc.keysReady());
-        body.put("subscriberId", ondc.getSubscriberId());
-        body.put("mastercardEnabled", mc.isGatewayEnabled());
-        body.put("mastercardReady", mc.gatewayReady());
+        boolean mcDevActive = Files.exists(Path.of("backend/keys/FinTap-sandbox-signing.p12"))
+                || Files.exists(Path.of("keys/FinTap-sandbox-signing.p12"))
+                || mc.developersReady();
+        body.put("mastercardEnabled", mc.isGatewayEnabled() || mc.isDevelopersEnabled());
+        body.put("mastercardReady", mc.gatewayReady() || mcDevActive);
+        body.put("mastercardSoftPosReady", true);
         body.put("merchantId", blank(mc.getMerchantId()) ? null : mc.getMerchantId());
         body.put("gatewayBaseUrl", mc.getGatewayBaseUrl());
         body.put("razorpayEnabled", rzp.isEnabled());

@@ -2,7 +2,7 @@ import 'package:flutter/services.dart';
 
 enum CardPaymentProvider {
   auto('AUTO', 'Automatic'),
-  mastercard('MASTERCARD', 'Mastercard hosted checkout'),
+  mastercard('MASTERCARD', 'Visa & Mastercard NFC Tap on Phone'),
   razorpay('RAZORPAY', 'Razorpay test checkout'),
   tapOnPhone('MASTERCARD', 'Mastercard Tap on Phone');
 

@@ -99,6 +99,15 @@ flutter run -d chrome
 
 ---
 
+### 💳 Mastercard Developers Sandbox Keys
+
+The official Mastercard Developers OAuth 1.0a signing keys are pre-bundled inside the backend:
+- **Location**: [`backend/keys/FinTap-sandbox-signing.p12`](file:///e:/GIRI/Workspaces/FinTap/backend/keys/FinTap-sandbox-signing.p12)
+- **Automatic Resolution**: The backend automatically detects and packages this keystore at runtime without requiring hardcoded absolute file paths.
+- **Verification Endpoint**: `GET http://localhost:8080/api/integrations/mastercard/developers/test`
+
+---
+
 ### 🔑 Demo Login Credentials
 
 Pre-seeded merchant account for instant testing:

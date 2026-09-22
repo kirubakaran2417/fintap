@@ -10,6 +10,10 @@ target/
 *.pem
 *.jks
 
+# Allow bundled sandbox test keys for local backend startup
+!backend/keys/*
+!backend/src/main/resources/keys/*
+
 mobile/.dart_tool/
 mobile/.packages
 mobile/build/
@@ -18,5 +22,6 @@ mobile/.flutter-plugins-dependencies
 mobile/pubspec.lock
 backend/data/
 
-# local env
+# local env & extracted download folder
 backend/.env.local
+MCD_Sandbox_fintap_API_Keys/

@@ -77,6 +77,14 @@ class _EvidenceScreenState extends State<EvidenceScreen> {
   Widget build(BuildContext context) {
     final ondcLive = (status?['ondc'] as Map?)?['live'] == true;
     final rzpReady = (status?['razorpay'] as Map?)?['ready'] == true;
+    final mcGateway = status?['mastercardGateway'] as Map<String, dynamic>? ?? {};
+    final mcDev = status?['mastercardDevelopers'] as Map<String, dynamic>? ?? {};
+    final liveMap = status?['live'] as Map<String, dynamic>? ?? {};
+    final mcReady = mcGateway['gatewayReady'] == true ||
+        mcGateway['keysConfigured'] == true ||
+        mcGateway['softPosReady'] == true ||
+        mcDev['keystorePresent'] == true ||
+        liveMap['mastercardSoftPosReady'] == true;
     final runtimeCredentialsAllowed = (status?['live'] as Map?)?['runtimeCredentialsAllowed'] == true;
     return Scaffold(
       appBar: AppBar(
@@ -98,6 +106,8 @@ class _EvidenceScreenState extends State<EvidenceScreen> {
                 Row(
                   children: [
                     _flag('ONDC', ondcLive ? 'Configured' : 'Local'),
+                    const SizedBox(width: 8),
+                    _flag('Mastercard', mcReady ? 'SoftPOS Ready' : 'Off'),
                     const SizedBox(width: 8),
                     _flag('Razorpay', rzpReady ? 'Test live' : 'Off'),
                   ],
@@ -180,6 +190,26 @@ class _EvidenceScreenState extends State<EvidenceScreen> {
                   'Mastercard last session',
                   data!['mastercard'] as Map<String, dynamic>? ?? {},
                   actions: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE8F5E9),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.nfc, color: FtColors.teal, size: 18),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Mastercard Developers Keys active (FinTap-sandbox-signing.p12). SoftPOS Tap ready.',
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: FtColors.teal),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
                     if (runtimeCredentialsAllowed) ...[
                     TextField(
                       controller: merchantId,

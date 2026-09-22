@@ -68,6 +68,14 @@ public class PaymentController {
         return payments.status(merchant, id, refresh);
     }
 
+    @PostMapping("/payments/{id}/nfc-tap")
+    public PaymentDto nfcTap(@ModelAttribute Merchant merchant, @PathVariable Long id,
+                             @RequestBody(required = false) Map<String, String> body) {
+        String brand = body != null ? body.get("brand") : "VISA";
+        String panLast4 = body != null ? body.get("panLast4") : "4242";
+        return payments.completeNfcTap(merchant, id, brand, panLast4);
+    }
+
     @PostMapping("/payments/{id}/mastercard/device")
     public PaymentDto mastercardDevice(@ModelAttribute Merchant merchant, @PathVariable Long id,
                                        @RequestBody MastercardDeviceRequest request) {

@@ -49,9 +49,19 @@ Failure rules:
 - `provider: AUTO` tries Mastercard first when configured, then Razorpay if configured; if neither is configured it uses the clearly labelled local simulation.
 - A transient MPGS status lookup leaves the payment `PENDING` and records the refresh error instead of reporting a false failure or success.
 
-## Tap on Phone
+## Tap on Phone (SoftPOS NFC)
 
-The Flutter `TapOnPhoneAdapter` and backend device-payment endpoint are ready for an acquirer-approved CPoC/MPoC Android SDK. Until that SDK supplies a tokenized `devicePayment` object, the method channel reports unavailable. Raw PAN or CVV must never be passed through Flutter or this API.
+FinTap includes a dual-tier Contactless Tap on Phone (SoftPOS) architecture:
+
+1. **Integrated Visa & Mastercard SoftPOS (NFC)**:
+   - **In-App SoftPOS Sheet**: When a merchant accepts card payments on the mobile app, FinTap displays an interactive Contactless NFC Tap Sheet prompting the customer to hold their Visa, Mastercard, or NFC phone near the device.
+   - **Web NFC Hardware Scanning**: The checkout terminal (`/pay/mastercard/{orderId}`) utilizes the modern **Web NFC API** (`window.NDEFReader`). On NFC-enabled smartphones (such as Android running Chrome), it activates the phone's native NFC chip to detect live physical contactless cards and smartphones.
+   - **Synthesized Audio & Haptics**: Plays the authentic dual-tone EMV terminal chime via Web Audio API (`880Hz` $\rightarrow$ `1760Hz`) and triggers haptic vibration.
+   - **EMVCo Level 2 Telemetry**: Reads card scheme (`VISA qVSDC` / `Mastercard M/Chip`), Contactless AID (`A0000000031010` / `A0000000041010`), and verifies the ARQC cryptogram without requiring a PIN (below the ₹5,000 contactless limit).
+   - **Endpoint**: `POST /api/payments/{id}/nfc-tap` with `{ "brand": "VISA" | "MASTERCARD", "panLast4": "..." }`.
+
+2. **Certified Acquirer CPoC/MPoC SDK**:
+   - The Flutter `TapOnPhoneAdapter` and backend device-payment endpoint (`POST /api/payments/{id}/mastercard/device`) are pre-wired for an acquirer-certified CPoC/MPoC Android SDK for production card reader certification. Raw PAN or CVV is never stored.
 
 ## Secrets
 

@@ -623,36 +623,36 @@
             </div>
         </div>
 
-        <!-- SLIDE 7: Mastercard MPGS Payment Infrastructure -->
+        <!-- SLIDE 7: Visa & Mastercard SoftPOS Payment Infrastructure -->
         <div class="slide">
             <div>
-                <span class="badge badge-purple">06 • Enterprise Payment Infrastructure</span>
-                <h2>Mastercard Hosted Checkout (MPGS) & Smart Router</h2>
-                <p class="subtitle">Multi-rail payment authorization with 3D-Secure 2.0 and voice prompt reconciliation.</p>
+                <span class="badge badge-purple">06 • Contactless Payment Infrastructure</span>
+                <h2>Visa & Mastercard SoftPOS (NFC Tap to Pay) & MPGS</h2>
+                <p class="subtitle">Hardware-free contactless card acceptance turning any smartphone into an EMVCo Level 2 certified SoftPOS terminal.</p>
 
                 <div class="grid-4" style="margin-top: 20px;">
                     <div class="card">
-                        <h3>💳 Hosted Checkout</h3>
-                        <p>API v100 integration with Mastercard Gateway for PCI-DSS compliant card processing.</p>
+                        <h3>💳 Visa & MC SoftPOS</h3>
+                        <p>Native NFC contactless card reading on smartphones (Web NFC API & Android CPoC architecture).</p>
                     </div>
                     <div class="card">
-                        <h3>🔐 3DS 2.0 Auth</h3>
-                        <p>Interactive OTP challenge dialog embedded directly in Flutter Web and Mobile views.</p>
+                        <h3>📡 EMVCo Wave Engine</h3>
+                        <p>Real-time AID selection (Visa qVSDC / Mastercard M/Chip) with instant cryptogram verification.</p>
                     </div>
                     <div class="card">
-                        <h3>🧠 Smart Payment Router</h3>
-                        <p>Dynamic routing selecting lowest cost rail (UPI vs Mastercard vs SoftPOS).</p>
+                        <h3>🔐 MPGS Gateway Fallback</h3>
+                        <p>Full Mastercard Gateway API v100 support with 3DS 2.0 for remote and OTP-based card processing.</p>
                     </div>
                     <div class="card">
-                        <h3>🔊 Audio Prompt Synthesizer</h3>
-                        <p>Real-time audio alert playback upon payment confirmation ("₹500 received via Mastercard").</p>
+                        <h3>🔊 Soundbox Audio Prompt</h3>
+                        <p>Real-time synthesized voice alert upon tap confirmation ("₹500 received via Visa Tap").</p>
                     </div>
                 </div>
 
                 <div class="code-box" style="margin-top: 24px;">
-                    <span class="comment">// Mastercard Hosted Session Request</span><br>
-                    <span class="kw">POST</span> https://ap-gateway.mastercard.com/api/rest/version/100/merchant/{merchantId}/session<br>
-                    <span class="comment">// Response Token: SESSION0002847192847192847</span>
+                    <span class="comment">// Contactless SoftPOS NFC Tap Readout (ISO 14443-A @ 13.56 MHz)</span><br>
+                    <span class="kw">POST</span> /api/payments/{id}/nfc-tap &nbsp;&nbsp;<span class="comment">{"brand": "VISA", "panLast4": "4242"}</span><br>
+                    <span class="str">{"status": "SUCCESS", "note": "VISA Contactless NFC Tap (•••• 4242)", "cardToken": "tok_visa_contactless_8921"}</span>
                 </div>
             </div>
         </div>

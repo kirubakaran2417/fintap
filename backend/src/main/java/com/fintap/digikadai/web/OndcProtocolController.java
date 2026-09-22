@@ -186,6 +186,11 @@ class IntegrationController {
         );
     }
 
+    @GetMapping("/mastercard/developers/test")
+    public Map<String, Object> mastercardDevelopersTest() {
+        return developers.testAuthHeader();
+    }
+
     @GetMapping("/evidence")
     public Map<String, Object> evidence() {
         return evidence.snapshot();
