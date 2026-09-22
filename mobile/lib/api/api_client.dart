@@ -156,6 +156,9 @@ class ApiClient {
         if (amount != null) 'amount': amount,
       });
 
+  Future<Map<String, dynamic>> nudgeWhatsapp(Map<String, dynamic> payload) =>
+      _post('/api/nudge/whatsapp', payload);
+
   Future<Map<String, dynamic>> _get(String path) async {
     final response = await http.get(_uri(path), headers: _headers());
     return _decodeMap(response);
