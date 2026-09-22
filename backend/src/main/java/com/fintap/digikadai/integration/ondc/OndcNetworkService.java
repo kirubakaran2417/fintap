@@ -22,6 +22,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -41,6 +42,7 @@ import java.time.format.DateTimeParseException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -203,20 +205,28 @@ public class OndcNetworkService {
         return response;
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public OndcOrder captureConfirm(JsonNode request, String rawBody) {
         JsonNode orderNode = request.path("message").path("order");
         String orderRef = text(orderNode.path("id"), "ONDC-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         String transactionId = requiredText(request.path("context"), "transaction_id");
-        OndcOrder order = orders.findByOrderRef(orderRef).or(() -> orders.findByTransactionId(transactionId))
-                .orElseGet(OndcOrder::new);
+        OndcOrder order = orderByRef(orderRef).orElseGet(OndcOrder::new);
+        String existingBuyer = order.getBuyerApp();
+        String existingMobile = order.getBuyerMobile();
         Merchant merchant = resolveMerchant(orderNode);
         order.setMerchant(merchant);
         order.setOrderRef(orderRef);
         order.setTransactionId(transactionId);
         order.setMessageId(requiredText(request.path("context"), "message_id"));
         order.setProviderId(text(orderNode.path("provider").path("id"), "merchant-" + merchant.getId()));
-        order.setBuyerApp(text(request.path("context").path("bap_id"), "ONDC buyer"));
+        if (blank(existingBuyer)) {
+            order.setBuyerApp(text(request.path("context").path("bap_id"), "ONDC buyer"));
+        } else {
+            order.setBuyerApp(existingBuyer);
+        }
+        if (!blank(existingMobile)) {
+            order.setBuyerMobile(existingMobile);
+        }
         order.setBapUri(text(request.path("context").path("bap_uri"), properties.getOndc().getBapUri()));
         order.setItemsSummary(summarizeItems(orderNode.path("items")));
         order.setAmount(orderAmount(orderNode));
@@ -429,19 +439,10 @@ public class OndcNetworkService {
         }
         List<Map<String, Object>> items = ingestOnSearch(onSearch);
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("source", hops.stream().anyMatch(hop -> Boolean.TRUE.equals(hop.get("ok")) && "ondc-gateway".equals(hop.get("role")))
-                ? "ondc-network" : "beckn-http");
-        result.put("transactionId", transactionId);
-        result.put("bapId", ondc.getBapId());
-        result.put("bapUri", ondc.getBapUri());
-        result.put("bppUri", ondc.getBppUri());
-        result.put("gatewayUrl", ondc.getGatewayUrl());
-        result.put("callbackReceived", onSearch != null);
-        result.put("hops", hops);
         result.put("itemCount", items.size());
-        result.put("items", items);
+        result.put("items", items.stream().map(this::publicCatalogItem).toList());
         if (items.isEmpty()) {
-            result.put("error", "No on_search catalog yet. ONDC gateway requires a registered subscriber and HTTPS bap_uri/bpp_uri. Direct seller /search was also posted over HTTP.");
+            result.put("error", "No products available from the seller right now.");
         }
         lastNetworkSearch = result;
         evidence.recordOndcPing(Map.of(
@@ -458,8 +459,18 @@ public class OndcNetworkService {
         return lastNetworkSearch == null ? Map.of() : lastNetworkSearch;
     }
 
-    @Transactional
-    public Map<String, Object> buyerConfirm(String itemId, int quantity) {
+    public Map<String, Object> buyerLiveCatalog() {
+        List<Map<String, Object>> items = ingestOnSearch(onSearchCatalog(retailSearchRequest()));
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("itemCount", items.size());
+        result.put("items", items.stream().map(this::publicCatalogItem).toList());
+        if (items.isEmpty()) {
+            result.put("error", "No products available from the seller right now.");
+        }
+        return result;
+    }
+
+    public Map<String, Object> buyerConfirm(String itemId, int quantity, String buyerName, String buyerMobile) {
         if (itemId == null || itemId.isBlank()) {
             throw new IllegalArgumentException("itemId is required");
         }
@@ -473,10 +484,9 @@ public class OndcNetworkService {
         ObjectNode context = newContext("confirm", ondc.getBapId(), ondc.getBapUri());
         context.put("bpp_id", offer.bppId());
         context.put("bpp_uri", offer.bppUri());
-        context.put("transaction_id", offer.transactionId());
         request.set("context", context);
         ObjectNode orderNode = mapper.createObjectNode();
-        orderNode.put("id", "BUY-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+        orderNode.put("id", "BUY-" + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase());
         orderNode.putObject("provider").put("id", offer.providerId());
         ArrayNode items = mapper.createArrayNode();
         ObjectNode item = mapper.createObjectNode();
@@ -488,28 +498,22 @@ public class OndcNetworkService {
         orderNode.set("items", items);
         request.set("message", mapper.createObjectNode().set("order", orderNode));
         String json = write(request);
+        OndcOrder stored = captureConfirm(request, json);
+        if (!blank(buyerName)) stored.setBuyerApp(buyerName + " · fintap.buyer");
+        if (!blank(buyerMobile)) stored.setBuyerMobile(buyerMobile);
+        stored = orders.save(stored);
         String confirmUrl = mockActionUrl(offer.bppUri(), "confirm");
         Map<String, Object> hop = postBeckn(confirmUrl, json, "bpp-confirm");
-        JsonNode onConfirm = awaitCallback(context.path("transaction_id").asText(), "on_confirm", 12);
-        OndcOrder stored = orders.findByTransactionId(context.path("transaction_id").asText())
-                .or(() -> orders.findByOrderRef(orderNode.path("id").asText()))
-                .orElse(null);
-        if (stored == null && Boolean.TRUE.equals(hop.get("ok"))) {
-            stored = captureConfirm(request, json);
-        }
-        if (stored == null) {
+        awaitCallback(context.path("transaction_id").asText(), "on_confirm", 12);
+        if (!Boolean.TRUE.equals(hop.get("ok")) && stored.getId() == null) {
             throw new IllegalArgumentException("BPP did not ACK confirm: " + hop.getOrDefault("error", hop.get("response")));
         }
-        Map<String, Object> view = toBuyerView(stored);
-        view.put("confirmHop", hop);
-        view.put("onConfirmReceived", onConfirm != null);
-        return view;
+        return toBuyerView(orderByRef(orderNode.path("id").asText()).orElse(stored));
     }
 
-    public List<Map<String, Object>> buyerOrders() {
+    public List<Map<String, Object>> buyerOrders(String buyerMobile) {
         return orders.findAll().stream()
-                .filter(order -> order.getBuyerApp() != null
-                        && order.getBuyerApp().toLowerCase().contains("fintap.buyer"))
+                .filter(order -> !blank(buyerMobile) && buyerMobile.equals(order.getBuyerMobile()))
                 .sorted(Comparator.comparing(OndcOrder::getCreatedAt, Comparator.nullsLast(Comparator.naturalOrder())).reversed())
                 .map(this::toBuyerView)
                 .toList();
@@ -527,7 +531,7 @@ public class OndcNetworkService {
             String orderId = text(payload.path("message").path("order").path("id"), "");
             String state = text(payload.path("message").path("order").path("state"), "");
             if (("on_status".equals(action) || "on_cancel".equals(action)) && !orderId.isBlank() && !state.isBlank()) {
-                orders.findByOrderRef(orderId).ifPresent(found -> {
+                orderByRef(orderId).ifPresent(found -> {
                     OndcOrderStatus mapped = mapCallbackState(state);
                     if (mapped != null) {
                         found.setStatus(mapped);
@@ -584,7 +588,7 @@ public class OndcNetworkService {
     private ObjectNode cancelCallback(JsonNode request) {
         String orderId = text(request.path("message").path("order_id"),
                 text(request.path("message").path("order").path("id"), ""));
-        orders.findByOrderRef(orderId).ifPresent(order -> {
+        orderByRef(orderId).ifPresent(order -> {
             order.setStatus(OndcOrderStatus.CANCELLED);
             order.setUpdatedAt(Instant.now());
             orders.save(order);
@@ -946,8 +950,6 @@ public class OndcNetworkService {
                 row.put("providerId", providerId);
                 row.put("price", price);
                 row.put("stock", item.path("quantity").path("available").path("count").asInt(0));
-                row.put("bppId", bppId);
-                row.put("bppUri", bppUri);
                 items.add(row);
             }
         }
@@ -975,15 +977,29 @@ public class OndcNetworkService {
         return "";
     }
 
+    private Optional<OndcOrder> orderByRef(String orderRef) {
+        if (blank(orderRef)) return Optional.empty();
+        List<OndcOrder> found = orders.findAllByOrderRef(orderRef);
+        return found.isEmpty() ? Optional.empty() : Optional.of(found.get(0));
+    }
+
+    private Map<String, Object> publicCatalogItem(Map<String, Object> row) {
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("id", row.get("id"));
+        item.put("name", row.get("name"));
+        item.put("shop", row.get("shop"));
+        item.put("price", row.get("price"));
+        item.put("stock", row.get("stock"));
+        return item;
+    }
+
     private Map<String, Object> toBuyerView(OndcOrder order) {
         Map<String, Object> view = new LinkedHashMap<>();
         view.put("id", order.getId());
         view.put("orderRef", order.getOrderRef());
-        view.put("transactionId", order.getTransactionId());
         view.put("itemsSummary", order.getItemsSummary());
         view.put("amount", order.getAmount());
         view.put("status", order.getStatus() == null ? "NEW" : order.getStatus().name());
-        view.put("buyerApp", order.getBuyerApp());
         view.put("createdAt", order.getCreatedAt());
         view.put("updatedAt", order.getUpdatedAt());
         return view;

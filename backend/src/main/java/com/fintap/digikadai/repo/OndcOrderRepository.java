@@ -11,6 +11,7 @@ public interface OndcOrderRepository extends JpaRepository<OndcOrder, Long> {
     List<OndcOrder> findByMerchantOrderByCreatedAtDesc(Merchant merchant);
     boolean existsByMerchantAndOrderRef(Merchant merchant, String orderRef);
     Optional<OndcOrder> findByOrderRef(String orderRef);
+    List<OndcOrder> findAllByOrderRef(String orderRef);
     Optional<OndcOrder> findByTransactionId(String transactionId);
     boolean existsByMessageId(String messageId);
 }

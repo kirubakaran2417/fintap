@@ -30,6 +30,7 @@ public class OndcOrder {
     private String messageId;
     private String providerId;
     private String buyerApp;
+    private String buyerMobile;
     private String bapUri;
     private String itemsSummary;
     private BigDecimal amount;
@@ -79,6 +80,14 @@ public class OndcOrder {
 
     public void setBuyerApp(String buyerApp) {
         this.buyerApp = buyerApp;
+    }
+
+    public String getBuyerMobile() {
+        return buyerMobile;
+    }
+
+    public void setBuyerMobile(String buyerMobile) {
+        this.buyerMobile = buyerMobile;
     }
 
     public String getBapUri() {

@@ -70,10 +70,6 @@ public class DataSeeder {
             merchants.save(shop);
             merchantService.issueDemoToken(shop, "demo-token");
 
-            addPayment(payments, shop, "542.00", PaymentRail.CARD, "Ramesh", Instant.now().minus(40, ChronoUnit.MINUTES));
-            addPayment(payments, shop, "180.00", PaymentRail.UPI, "Walk-in", Instant.now().minus(90, ChronoUnit.MINUTES));
-            addPayment(payments, shop, "1493.00", PaymentRail.CARD, "Priya S", Instant.now().minus(3, ChronoUnit.HOURS));
-
             CustomerProfile ramesh = new CustomerProfile();
             ramesh.setMerchant(shop);
             ramesh.setToken("tok_ramesh");
@@ -93,18 +89,6 @@ public class DataSeeder {
             priya.setChurnRisk(0.61);
             profiles.save(priya);
 
-            addItem(catalog, shop, "Tata Salt 1kg", "8901030865366", "Grocery", "28", "26", 40, true);
-            addItem(catalog, shop, "Parle-G 800g", "8901491101030", "Snacks", "90", "84", 24, true);
-            addItem(catalog, shop, "Surf Excel 500g", "8901725111924", "Home care", "99", "92", 18, false);
-            addItem(catalog, shop, "Aashirvaad Atta 5kg", "8901725992211", "Grocery", "270", "255", 10, true);
-
-            addOrder(orders, shop, "ONDC-4418", "Mystore", "Atta 5kg + Salt", "281.00", OndcOrderStatus.NEW);
-            addOrder(orders, shop, "ONDC-4402", "Paytm", "Parle-G x4", "336.00", OndcOrderStatus.PACKED);
-            addOrder(orders, shop, "ONDC-4388", "PhonePe", "Surf Excel", "92.00", OndcOrderStatus.DELIVERED);
-
-            addKhata(khata, shop, "Anil Tea Stall", "9845011122", "1200", false, "Weekly ration");
-            addKhata(khata, shop, "Meena", "9845099988", "450", false, "Rice bag");
-            addKhata(khata, shop, "Anil Tea Stall", "9845011122", "400", true, "Partial repayment");
 
             Insight one = new Insight();
             one.setMerchant(shop);
