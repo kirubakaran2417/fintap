@@ -13,6 +13,7 @@ import com.fintap.digikadai.integration.mastercard.MastercardGatewayService;
 import com.fintap.digikadai.repo.CustomerProfileRepository;
 import com.fintap.digikadai.repo.KhataEntryRepository;
 import com.fintap.digikadai.repo.PaymentRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,6 +46,7 @@ public class PaymentService {
         this(payments, profiles, mastercard, razorpay, null);
     }
 
+    @Autowired
     public PaymentService(
             PaymentRepository payments,
             CustomerProfileRepository profiles,
