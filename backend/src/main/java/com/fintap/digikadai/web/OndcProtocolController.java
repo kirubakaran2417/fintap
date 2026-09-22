@@ -63,6 +63,36 @@ public class OndcProtocolController {
         return accept("cancel", body, authorization);
     }
 
+    @PostMapping("/on_search")
+    public Map<String, Object> onSearch(@RequestBody String body) {
+        return ondc.receiveBuyerCallback("on_search", body);
+    }
+
+    @PostMapping("/on_select")
+    public Map<String, Object> onSelect(@RequestBody String body) {
+        return ondc.receiveBuyerCallback("on_select", body);
+    }
+
+    @PostMapping("/on_init")
+    public Map<String, Object> onInit(@RequestBody String body) {
+        return ondc.receiveBuyerCallback("on_init", body);
+    }
+
+    @PostMapping("/on_confirm")
+    public Map<String, Object> onConfirm(@RequestBody String body) {
+        return ondc.receiveBuyerCallback("on_confirm", body);
+    }
+
+    @PostMapping("/on_status")
+    public Map<String, Object> onStatus(@RequestBody String body) {
+        return ondc.receiveBuyerCallback("on_status", body);
+    }
+
+    @PostMapping("/on_cancel")
+    public Map<String, Object> onCancel(@RequestBody String body) {
+        return ondc.receiveBuyerCallback("on_cancel", body);
+    }
+
     @PostMapping("/on_subscribe")
     public Map<String, Object> onSubscribe(@RequestBody JsonNode body) {
         return Map.of("answer", ondc.answerSubscriptionChallenge(body));
@@ -100,6 +130,11 @@ class OndcSiteVerificationController {
                 </html>
                 """.formatted(content);
     }
+
+    @PostMapping("/on_subscribe")
+    public Map<String, Object> onSubscribeRoot(@RequestBody JsonNode body) {
+        return Map.of("answer", ondc.answerSubscriptionChallenge(body));
+    }
 }
 
 @RestController
@@ -113,6 +148,7 @@ class IntegrationController {
     private final com.fintap.digikadai.integration.DemoEvidenceService evidence;
     private final com.fintap.digikadai.integration.LiveIntegrationService live;
     private final com.fintap.digikadai.integration.razorpay.RazorpayGatewayService razorpay;
+    private final com.fintap.digikadai.integration.ondc.OndcRegistryService registry;
 
     IntegrationController(
             OndcNetworkService ondc,
@@ -121,7 +157,8 @@ class IntegrationController {
             com.fintap.digikadai.integration.mastercard.MastercardDevelopersService developers,
             com.fintap.digikadai.integration.DemoEvidenceService evidence,
             com.fintap.digikadai.integration.LiveIntegrationService live,
-            com.fintap.digikadai.integration.razorpay.RazorpayGatewayService razorpay
+            com.fintap.digikadai.integration.razorpay.RazorpayGatewayService razorpay,
+            com.fintap.digikadai.integration.ondc.OndcRegistryService registry
     ) {
         this.ondc = ondc;
         this.signatures = signatures;
@@ -130,6 +167,7 @@ class IntegrationController {
         this.evidence = evidence;
         this.live = live;
         this.razorpay = razorpay;
+        this.registry = registry;
     }
 
     @GetMapping("/status")
@@ -207,6 +245,16 @@ class IntegrationController {
     public Map<String, Object> connectDev(@ModelAttribute Merchant merchant) {
         live.ensureOndcLive();
         return ondc.connectDevAndLoadCustomers(merchant);
+    }
+
+    @PostMapping("/ondc/subscribe")
+    public Map<String, Object> subscribe() {
+        return registry.register();
+    }
+
+    @GetMapping("/ondc/subscribe")
+    public Map<String, Object> subscribeStatus() {
+        return registry.lastSubscribe();
     }
 
     @PostMapping("/ondc/lookup")

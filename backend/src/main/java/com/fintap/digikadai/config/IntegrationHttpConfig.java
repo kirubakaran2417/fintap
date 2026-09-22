@@ -13,8 +13,9 @@ public class IntegrationHttpConfig {
     @Bean
     RestClient integrationRestClient() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(Duration.ofSeconds(8));
-        factory.setReadTimeout(Duration.ofSeconds(12));
+        factory.setConnectTimeout(Duration.ofSeconds(10));
+        factory.setReadTimeout(Duration.ofSeconds(25));
+        factory.setBufferRequestBody(true);
         return RestClient.builder().requestFactory(factory).build();
     }
 }

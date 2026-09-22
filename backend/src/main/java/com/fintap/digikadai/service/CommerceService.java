@@ -40,11 +40,7 @@ import java.util.Set;
 @Service
 public class CommerceService {
 
-    private static final Map<String, CatalogItemDto.CreateRequest> BARCODES = Map.of(
-            "8901030865366", new CatalogItemDto.CreateRequest("Tata Salt 1kg", "8901030865366", "Grocery", new BigDecimal("28"), new BigDecimal("26"), 40, "Iodised salt — high weekly velocity SKU"),
-            "8901491101030", new CatalogItemDto.CreateRequest("Parle-G 800g", "8901491101030", "Snacks", new BigDecimal("90"), new BigDecimal("84"), 24, "Biscuit staple with strong repeat demand"),
-            "8901725111924", new CatalogItemDto.CreateRequest("Surf Excel 500g", "8901725111924", "Home care", new BigDecimal("99"), new BigDecimal("92"), 18, "Detergent — price 4% below local average")
-    );
+    private static final Map<String, CatalogItemDto.CreateRequest> BARCODES = Map.of();
 
     private final CatalogItemRepository catalog;
     private final OndcOrderRepository orders;
@@ -192,8 +188,11 @@ public class CommerceService {
 
     public List<OndcOrderDto> ondcOrders(Merchant merchant) {
         List<OndcOrder> current = orders.findByMerchantOrderByCreatedAtDesc(merchant);
-        boolean shouldAutoInject = current.isEmpty() || current.stream().noneMatch(o -> o.getStatus() == OndcOrderStatus.NEW) ||
-                (current.get(0).getCreatedAt() != null && current.get(0).getCreatedAt().isBefore(Instant.now().minusSeconds(25)));
+        boolean hasBuyerAppOrder = current.stream().anyMatch(o ->
+                o.getBuyerApp() != null && o.getBuyerApp().toLowerCase(Locale.ROOT).contains("fintap.buyer"));
+        boolean shouldAutoInject = !hasBuyerAppOrder && (current.isEmpty()
+                || current.stream().noneMatch(o -> o.getStatus() == OndcOrderStatus.NEW)
+                || (current.get(0).getCreatedAt() != null && current.get(0).getCreatedAt().isBefore(Instant.now().minusSeconds(25))));
         if (shouldAutoInject) {
             try {
                 ondcNetwork.simulateIncomingOrder(merchant);
@@ -217,7 +216,12 @@ public class CommerceService {
                 });
         order.setStatus(status == null ? OndcOrderStatus.DUNZO_PICKUP : status);
         order.setUpdatedAt(Instant.now());
-        return toOrder(orders.save(order));
+        OndcOrder saved = orders.save(order);
+        try {
+            ondcNetwork.notifyBuyerStatus(saved);
+        } catch (Exception ignored) {
+        }
+        return toOrder(saved);
     }
 
     private OndcOrderStatus parseStatus(String input) {

@@ -55,12 +55,23 @@ public class IntegrationProperties {
         private String registryUrl = "";
         private String gatewayUrl = "";
         private String mockBppUrl = "";
+        private String mockBapUrl = "";
         private String domain = "ONDC:RET10";
         private String city = "std:080";
         private String coreVersion = "1.2.0";
         private String bppId = "";
         private String bppUri = "";
+        private String bapId = "";
+        private String bapUri = "";
         private String country = "IND";
+        private String requestId = "";
+        private String gstNo = "29AABCU9603R1ZX";
+        private String panNo = "AABCU9603R";
+        private String legalName = "FinTap Digi Kadai";
+        private String signatoryName = "Lakshmi";
+        private String signatoryEmail = "vasudevan.n@gmail.com";
+        private String signatoryMobile = "9876543210";
+        private String businessAddress = "12 Market Road, Bengaluru";
 
         public boolean isEnabled() {
             return enabled;
@@ -182,6 +193,14 @@ public class IntegrationProperties {
             this.mockBppUrl = mockBppUrl;
         }
 
+        public String getMockBapUrl() {
+            return mockBapUrl;
+        }
+
+        public void setMockBapUrl(String mockBapUrl) {
+            this.mockBapUrl = mockBapUrl;
+        }
+
         public String getDomain() {
             return domain;
         }
@@ -222,12 +241,92 @@ public class IntegrationProperties {
             this.bppUri = bppUri;
         }
 
+        public String getBapId() {
+            return bapId == null || bapId.isBlank() ? "fintap.buyer.local" : bapId;
+        }
+
+        public void setBapId(String bapId) {
+            this.bapId = bapId;
+        }
+
+        public String getBapUri() {
+            return bapUri == null || bapUri.isBlank() ? subscriberUrl : bapUri;
+        }
+
+        public void setBapUri(String bapUri) {
+            this.bapUri = bapUri;
+        }
+
         public String getCountry() {
             return country;
         }
 
         public void setCountry(String country) {
             this.country = country;
+        }
+
+        public String getRequestId() {
+            return requestId;
+        }
+
+        public void setRequestId(String requestId) {
+            this.requestId = requestId;
+        }
+
+        public String getGstNo() {
+            return gstNo;
+        }
+
+        public void setGstNo(String gstNo) {
+            this.gstNo = gstNo;
+        }
+
+        public String getPanNo() {
+            return panNo;
+        }
+
+        public void setPanNo(String panNo) {
+            this.panNo = panNo;
+        }
+
+        public String getLegalName() {
+            return legalName;
+        }
+
+        public void setLegalName(String legalName) {
+            this.legalName = legalName;
+        }
+
+        public String getSignatoryName() {
+            return signatoryName;
+        }
+
+        public void setSignatoryName(String signatoryName) {
+            this.signatoryName = signatoryName;
+        }
+
+        public String getSignatoryEmail() {
+            return signatoryEmail;
+        }
+
+        public void setSignatoryEmail(String signatoryEmail) {
+            this.signatoryEmail = signatoryEmail;
+        }
+
+        public String getSignatoryMobile() {
+            return signatoryMobile;
+        }
+
+        public void setSignatoryMobile(String signatoryMobile) {
+            this.signatoryMobile = signatoryMobile;
+        }
+
+        public String getBusinessAddress() {
+            return businessAddress;
+        }
+
+        public void setBusinessAddress(String businessAddress) {
+            this.businessAddress = businessAddress;
         }
 
         public boolean keysReady() {

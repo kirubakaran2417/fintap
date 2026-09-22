@@ -96,8 +96,20 @@ public class LiveIntegrationService {
             if (!blank(state.uniqueKeyId)) {
                 ondc.setUniqueKeyId(state.uniqueKeyId);
             }
+            if (!blank(state.signingPrivateKey) && blank(ondc.getSigningPrivateKey())) {
+                ondc.setSigningPrivateKey(state.signingPrivateKey);
+            }
             if (!blank(state.signingPublicKey) && blank(ondc.getSigningPublicKey())) {
                 ondc.setSigningPublicKey(state.signingPublicKey);
+            }
+            if (!blank(state.encryptionPrivateKey) && blank(ondc.getEncryptionPrivateKey())) {
+                ondc.setEncryptionPrivateKey(state.encryptionPrivateKey);
+            }
+            if (!blank(state.encryptionPublicKey) && blank(ondc.getEncryptionPublicKey())) {
+                ondc.setEncryptionPublicKey(state.encryptionPublicKey);
+            }
+            if (!blank(state.requestId) && blank(ondc.getRequestId())) {
+                ondc.setRequestId(state.requestId);
             }
             IntegrationProperties.Mastercard mc = properties.getMastercard();
             if (state.mcGatewayEnabled != null) {
@@ -153,6 +165,10 @@ public class LiveIntegrationService {
             state.subscriberId = ondc.getSubscriberId();
             state.uniqueKeyId = ondc.getUniqueKeyId();
             state.signingPublicKey = ondc.getSigningPublicKey();
+            state.signingPrivateKey = ondc.getSigningPrivateKey();
+            state.encryptionPublicKey = ondc.getEncryptionPublicKey();
+            state.encryptionPrivateKey = ondc.getEncryptionPrivateKey();
+            state.requestId = ondc.getRequestId();
             state.mcGatewayEnabled = mc.isGatewayEnabled();
             state.mcMerchantId = mc.getMerchantId();
             IntegrationProperties.Razorpay rzp = properties.getRazorpay();
@@ -178,6 +194,10 @@ public class LiveIntegrationService {
         public String subscriberId;
         public String uniqueKeyId;
         public String signingPublicKey;
+        public String signingPrivateKey;
+        public String encryptionPublicKey;
+        public String encryptionPrivateKey;
+        public String requestId;
         public Boolean mcGatewayEnabled;
         public String mcMerchantId;
         public Boolean razorpayEnabled;
