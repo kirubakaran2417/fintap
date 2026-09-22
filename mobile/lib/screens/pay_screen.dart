@@ -1,5 +1,6 @@
 import 'package:digi_kadai/main.dart';
 import 'package:digi_kadai/payments/payment_provider.dart';
+import 'package:digi_kadai/screens/transactions_screen.dart';
 import 'package:digi_kadai/theme.dart';
 import 'package:digi_kadai/widgets/format.dart';
 import 'package:flutter/material.dart';
@@ -438,6 +439,15 @@ class _PayScreenState extends State<PayScreen> {
               padding: const EdgeInsets.only(top: 16),
               child: Text('Last: ${lastPayment!['reference']} · ${lastPayment!['status']}', style: const TextStyle(color: FtColors.muted, fontSize: 12)),
             ),
+          const SizedBox(height: 12),
+          TextButton.icon(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const TransactionsScreen()),
+            ),
+            icon: const Icon(Icons.receipt_long_outlined, size: 16),
+            label: const Text('View all transactions & Khata ledger'),
+          ),
         ],
       ),
     );

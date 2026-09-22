@@ -102,9 +102,9 @@ public class DataSeeder {
             addOrder(orders, shop, "ONDC-4402", "Paytm", "Parle-G x4", "336.00", OndcOrderStatus.PACKED);
             addOrder(orders, shop, "ONDC-4388", "PhonePe", "Surf Excel", "92.00", OndcOrderStatus.DELIVERED);
 
-            addKhata(khata, shop, "Anil Tea Stall", "9845011122", "1200", false, "Weekly ration");
-            addKhata(khata, shop, "Meena", "9845099988", "450", false, "Rice bag");
-            addKhata(khata, shop, "Anil Tea Stall", "9845011122", "400", true, "Partial repayment");
+            addKhata(khata, shop, "Anil Tea Stall", "9845011122", "1200", false, "Weekly ration", Instant.now().minusSeconds(86400 * 2));
+            addKhata(khata, shop, "Meena", "9845099988", "450", false, "Rice bag", Instant.now().minusSeconds(86400));
+            addKhata(khata, shop, "Anil Tea Stall", "9845011122", "400", true, "Partial repayment", Instant.now().minusSeconds(3600 * 3));
 
             Insight one = new Insight();
             one.setMerchant(shop);
@@ -175,7 +175,7 @@ public class DataSeeder {
         repo.save(order);
     }
 
-    private void addKhata(KhataEntryRepository repo, Merchant shop, String name, String mobile, String amount, boolean credit, String note) {
+    private void addKhata(KhataEntryRepository repo, Merchant shop, String name, String mobile, String amount, boolean credit, String note, Instant createdAt) {
         KhataEntry entry = new KhataEntry();
         entry.setMerchant(shop);
         entry.setCustomerName(name);
@@ -183,6 +183,9 @@ public class DataSeeder {
         entry.setAmount(new BigDecimal(amount));
         entry.setCredit(credit);
         entry.setNote(note);
+        if (createdAt != null) {
+            entry.setCreatedAt(createdAt);
+        }
         repo.save(entry);
     }
 }
