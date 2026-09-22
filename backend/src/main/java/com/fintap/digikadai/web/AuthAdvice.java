@@ -20,6 +20,7 @@ public class AuthAdvice {
         String path = request.getRequestURI();
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())
                 || path.startsWith("/api/auth")
+                || path.startsWith("/api/buyer")
                 || path.equals("/api/health")
                 || path.startsWith("/pay/")
                 || path.startsWith("/api/payments/mastercard/local/")) {

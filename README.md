@@ -101,7 +101,7 @@ flutter run -d chrome
 3. Complete **store registration** if you created a new account.
 4. **Dashboard** — today / week / month, 7-day bars, ONDC, khata.
 5. **Pay** — amount keypad, Card or UPI. Card uses Razorpay checkout when test keys work; otherwise local SoftPOS.
-6. **ONDC** — catalogue, publish, ping sandbox (needs reachability to `mock.ondc.org`).
+6. **ONDC** — catalogue, publish, ping preprod gateway (falls back to local BPP if `preprod.gateway.ondc.org` is unreachable).
 7. **Khata** — give credit / collect.
 8. **AI** — insights in EN / हिन्दी / தமிழ் / తెలుగు.
 9. **Demo evidence** — checklist icon on Dashboard (or Network status card). Shows last ONDC / Razorpay / Mastercard calls.
@@ -122,7 +122,7 @@ RAZORPAY_KEY_SECRET=your_secret
 
 3. Restart the API, then **Pay** → Card → open checkout. Use [Razorpay test cards](https://razorpay.com/docs/payments/payments/test-card-details/).
 
-Mastercard MPGS still needs merchant ID + API password from Merchant Manager (see `backend/env.example`). ONDC mock ping needs outbound HTTPS to `mock.ondc.org`; a connect timeout means this network is blocking that host.
+Mastercard MPGS still needs merchant ID + API password from Merchant Manager (see `backend/env.example`). ONDC ping tries `https://preprod.gateway.ondc.org/search`; a connect timeout falls back to the local protocol so the buyer app still lists FinTap products.
 
 ### Typical problems
 
@@ -165,7 +165,9 @@ mvn spring-boot:run
 
 - `GET /api/integrations/status`
 - `GET /api/integrations/evidence` — last ping URL, HTTP status, truncated signature, last MPGS session id
-- `POST /api/integrations/ondc/ping` — signed `/search` to `https://mock.ondc.org/api/b2b/bpp`
+- `POST /api/integrations/ondc/ping` — signed `/search` to `https://preprod.gateway.ondc.org/search`, then local BPP if needed
+- `POST /api/buyer/search` — buyer catalog search
+- `POST /api/buyer/confirm` — buyer order request (merchant sees NEW, then Accept)
 - Card collect in the app creates an MPGS `CREATE_CHECKOUT_SESSION` when gateway credentials are set
 - `GET /api/payments/{id}/status?refresh=true` reconciles a pending MPGS payment from the gateway
 - `GET /api/integrations/evidence` includes the latest ONDC asynchronous callback failure/success
@@ -175,7 +177,7 @@ mvn spring-boot:run
 1. Start the API (`cd backend; mvn spring-boot:run`) and the app (`cd mobile; flutter run -d chrome`).
 2. Login as `9876543210` / `1234`.
 3. On Home, tap the checklist icon (or **Open demo evidence** on the dark Network status card).
-4. Tap **Ping mock.ondc.org**. If keys are set, the URL host is `mock.ondc.org`, `signed` is true, and `signatureHint` is the first characters of the Beckn `Authorization` signature. Tap a field to copy it.
+4. Tap **Ping preprod gateway**. If the host is reachable, the URL is `preprod.gateway.ondc.org`. If not, Demo Evidence shows a local BPP fallback. Tap a field to copy it.
 5. Go to **Pay**, enter ₹250+, accept **Card**. Return to Demo Evidence. With MPGS keys, `url` is on `test-gateway.mastercard.com` and `sessionId` is the gateway session. Without keys, the card says **Not live yet** — that is the honest local SoftPOS path.
 6. Optional: keep DevTools Network open so they can also see the outbound HTTPS hosts.
 
@@ -199,7 +201,7 @@ See **Run after clone** above. Shortcut: `9876543210` / `1234` (Lakshmi Kirana).
 
 ## Backend and Flutter
 
-Full start steps are in **Run after clone**. Summary: `cd backend` → `mvn spring-boot:run`, then `cd mobile` → `flutter pub get` → `flutter run -d chrome`.
+Full start steps are in **Run after clone**. Summary: `cd backend` → `mvn spring-boot:run`, then `cd mobile` → `flutter pub get` → `flutter run -d chrome`. Buyer app: `cd buyer` → `flutter pub get` → `flutter run -d chrome` (publish SKUs in the merchant app, then Search / Request).
 
 ## API map
 

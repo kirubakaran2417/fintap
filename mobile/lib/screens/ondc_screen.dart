@@ -161,7 +161,7 @@ class _OndcScreenState extends State<OndcScreen> {
         children: [
           MerchantHeader(
             title: live ? 'Store connected' : 'Your online store',
-            subtitle: live ? 'ONDC sandbox' : 'Local catalogue',
+            subtitle: live ? 'ONDC preprod' : 'Local protocol fallback',
             color: FtColors.purple,
             trailing: const Icon(Icons.storefront_outlined, color: Colors.white, size: 32),
             child: Row(children: [
@@ -231,12 +231,12 @@ class _OndcScreenState extends State<OndcScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(live ? 'ONDC sandbox connected' : 'ONDC running locally', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                    Text(live ? 'ONDC preprod connected' : 'ONDC local fallback', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
                     const SizedBox(height: 6),
                     Text(
                       live
-                          ? 'Signed /search is enabled for ${status?['subscriberId']}'
-                          : 'Connect ONDC sandbox to pull buyer apps in as demo customers.',
+                          ? 'Preprod gateway /search is enabled for ${status?['subscriberId']}'
+                          : 'Search hits preprod.gateway.ondc.org first, then the local FinTap BPP so the buyer app can list published SKUs.',
                       style: const TextStyle(color: FtColors.muted, fontSize: 12),
                     ),
                     const SizedBox(height: 12),
@@ -278,8 +278,8 @@ class _OndcScreenState extends State<OndcScreen> {
                         ),
                         const SizedBox(height: 8),
                         FilledButton.tonal(
-                          onPressed: () => _toast(api.pingOndc(), 'Mock BPP /search reached'),
-                          child: const Text('Ping sandbox'),
+                          onPressed: () => _toast(api.pingOndc(), 'Preprod gateway /search attempted'),
+                          child: const Text('Ping preprod gateway'),
                         ),
                         OutlinedButton(
                           onPressed: () => _toast(api.lookupOndc(), 'Registry lookup sent'),

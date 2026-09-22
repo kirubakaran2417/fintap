@@ -84,10 +84,10 @@ public class OndcNetworkService {
         body.put("subscriberId", blankToNull(ondc.getSubscriberId()));
         body.put("registryUrl", ondc.getRegistryUrl());
         body.put("gatewayUrl", ondc.getGatewayUrl());
-        body.put("mockBppUrl", ondc.getMockBppUrl());
+        body.put("bapId", blankToNull(ondc.getBapId()));
+        body.put("bapUri", blankToNull(ondc.getBapUri()));
         body.put("domain", ondc.getDomain());
-        body.put("live", ondc.isEnabled() && ondc.keysReady()
-                && ondc.getMockBppUrl() != null && ondc.getMockBppUrl().contains("ondc.org"));
+        body.put("live", ondc.isEnabled() && officialPreprod(ondc.getGatewayUrl()));
         return body;
     }
 
@@ -162,6 +162,7 @@ public class OndcNetworkService {
         ObjectNode response = mapper.createObjectNode();
         response.set("context", copyContext(request.path("context"), "on_search"));
         ObjectNode catalogNode = mapper.createObjectNode();
+        catalogNode.set("bpp/descriptor", mapper.createObjectNode().put("name", "FinTap merchant network"));
         catalogNode.set("descriptor", mapper.createObjectNode().put("name", "FinTap merchant network"));
         ArrayNode providers = mapper.createArrayNode();
         for (Merchant shop : merchants.findAll()) {
@@ -171,6 +172,17 @@ public class OndcNetworkService {
             ObjectNode provider = mapper.createObjectNode();
             provider.put("id", "merchant-" + shop.getId());
             provider.set("descriptor", mapper.createObjectNode().put("name", shop.getShopName()));
+            ObjectNode location = mapper.createObjectNode();
+            location.put("id", "loc-" + shop.getId());
+            location.put("gps", "12.9716,77.5946");
+            location.putObject("address")
+                    .put("locality", shop.getAddress() == null ? "Market Road" : shop.getAddress())
+                    .put("city", shop.getCity() == null || shop.getCity().isBlank() ? "Bengaluru" : shop.getCity())
+                    .put("state", "Karnataka")
+                    .put("area_code", "560001");
+            provider.set("locations", mapper.createArrayNode().add(location));
+            provider.set("fulfillments", mapper.createArrayNode().add(
+                    mapper.createObjectNode().put("id", "F1").put("type", "Delivery")));
             ArrayNode items = mapper.createArrayNode();
             for (CatalogItem item : published) {
                 ObjectNode node = mapper.createObjectNode();
@@ -178,12 +190,16 @@ public class OndcNetworkService {
                 node.set("descriptor", mapper.createObjectNode().put("name", item.getName())
                         .put("code", item.getBarcode() == null ? "" : item.getBarcode()));
                 node.putObject("price").put("currency", "INR").put("value", money(item.getSellingPrice()));
-                node.putObject("quantity").putObject("available").put("count", item.getStock());
+                node.putObject("quantity").putObject("available").put("count", String.valueOf(item.getStock()));
+                node.put("location_id", "loc-" + shop.getId());
+                node.put("fulfillment_id", "F1");
+                node.put("category_id", item.getCategory() == null ? "Grocery" : item.getCategory());
                 items.add(node);
             }
             provider.set("items", items);
             providers.add(provider);
         }
+        catalogNode.set("bpp/providers", providers);
         catalogNode.set("providers", providers);
         response.set("message", mapper.createObjectNode().set("catalog", catalogNode));
         return response;
@@ -203,9 +219,10 @@ public class OndcNetworkService {
         order.setMessageId(requiredText(request.path("context"), "message_id"));
         order.setProviderId(text(orderNode.path("provider").path("id"), "merchant-" + merchant.getId()));
         order.setBuyerApp(text(request.path("context").path("bap_id"), "ONDC buyer"));
+        order.setBapUri(text(request.path("context").path("bap_uri"), ""));
         order.setItemsSummary(summarizeItems(orderNode.path("items")));
         order.setAmount(orderAmount(orderNode));
-        order.setStatus(OndcOrderStatus.ACCEPTED);
+        order.setStatus(OndcOrderStatus.NEW);
         if (order.getCreatedAt() == null) order.setCreatedAt(Instant.now());
         order.setUpdatedAt(Instant.now());
         order.setRawRequest(rawBody);
@@ -222,11 +239,82 @@ public class OndcNetworkService {
     }
 
     public Map<String, Object> pingMockSearch() {
-        return searchMockBpp(true);
+        return searchGatewayThenLocal(true);
+    }
+
+    public Map<String, Object> searchGatewayThenLocal(boolean recordPing) {
+        IntegrationProperties.Ondc ondc = properties.getOndc();
+        if (!ondc.isEnabled()) {
+            Map<String, Object> skipped = Map.of("ok", false, "officialHost", false,
+                    "error", "Set ONDC_ENABLED=true to call the ONDC preprod gateway.");
+            if (recordPing) evidence.recordOndcPing(skipped);
+            return new LinkedHashMap<>(skipped);
+        }
+        ObjectNode payload = mapper.createObjectNode();
+        payload.set("context", newContext("search", ondc.getBapId(), ondc.getBapUri()));
+        payload.set("message", mapper.createObjectNode().set("intent",
+                mapper.createObjectNode().set("category", mapper.createObjectNode().put("id", "Grocery"))));
+        String json = write(payload);
+        String gatewayUrl = trimSlash(ondc.getGatewayUrl()) + "/search";
+        Map<String, Object> result = callForEvidence(gatewayUrl, json, recordPing);
+        if (!Boolean.TRUE.equals(result.get("ok"))) {
+            String localUrl = trimSlash(ondc.getBppUri()) + "/search";
+            Map<String, Object> local = callForEvidence(localUrl, json, false);
+            local.put("fallback", "local-bpp");
+            local.put("gatewayError", result.get("error") == null ? result.get("httpStatus") : result.get("error"));
+            if (recordPing) {
+                Map<String, Object> recorded = new LinkedHashMap<>(local);
+                recorded.remove("body");
+                evidence.recordOndcPing(recorded);
+            }
+            return local;
+        }
+        return result;
+    }
+
+    public ObjectNode buyerSearchPayload(String query) {
+        IntegrationProperties.Ondc ondc = properties.getOndc();
+        ObjectNode payload = mapper.createObjectNode();
+        payload.set("context", newContext("search", ondc.getBapId(), ondc.getBapUri()));
+        ObjectNode intent = mapper.createObjectNode();
+        intent.set("category", mapper.createObjectNode().put("id", "Grocery"));
+        if (query != null && !query.isBlank()) {
+            intent.set("item", mapper.createObjectNode().set("descriptor", mapper.createObjectNode().put("name", query)));
+        }
+        payload.set("message", mapper.createObjectNode().set("intent", intent));
+        return payload;
+    }
+
+    public Map<String, Object> postToBpp(String action, JsonNode payload) {
+        IntegrationProperties.Ondc ondc = properties.getOndc();
+        String url = trimSlash(ondc.getBppUri()) + "/" + action;
+        return callForEvidence(url, write(payload), false);
+    }
+
+    public void notifyBuyerStatus(OndcOrder order) {
+        if (order.getBapUri() == null || order.getBapUri().isBlank()) {
+            log.info("No bap_uri for order {}, skipping on_status", order.getOrderRef());
+            return;
+        }
+        ObjectNode request = mapper.createObjectNode();
+        try {
+            if (order.getRawRequest() != null && !order.getRawRequest().isBlank()) {
+                request = (ObjectNode) mapper.readTree(order.getRawRequest());
+            }
+        } catch (Exception ignored) { }
+        if (!request.has("context")) {
+            ObjectNode context = newContext("on_status", order.getBuyerApp(), order.getBapUri());
+            context.put("transaction_id", order.getTransactionId() == null ? UUID.randomUUID().toString() : order.getTransactionId());
+            request.set("context", context);
+        }
+        ObjectNode response = orderCallback(request, "on_status", order.getStatus().name());
+        ((ObjectNode) response.path("message").path("order")).put("id", order.getOrderRef());
+        Map<String, Object> callback = sendCallbackWithRetry(request, "on_status", response);
+        evidence.recordOndcCallback(callback);
     }
 
     public Map<String, Object> connectDevAndLoadCustomers(Merchant merchant) {
-        Map<String, Object> ping = searchMockBpp(true);
+        Map<String, Object> ping = searchGatewayThenLocal(true);
         Object raw = ping.get("body") != null ? ping.get("body") : ping.get("response");
         List<String> buyers = extractBuyerNames(raw == null ? "" : raw.toString());
         boolean fromNetwork = !buyers.isEmpty() && Boolean.TRUE.equals(ping.get("ok"));
@@ -290,27 +378,13 @@ public class OndcNetworkService {
         return result;
     }
 
-    private Map<String, Object> searchMockBpp(boolean recordPing) {
-        IntegrationProperties.Ondc ondc = properties.getOndc();
-        if (!ondc.isEnabled()) {
-            Map<String, Object> skipped = Map.of("ok", false, "officialHost", false,
-                    "error", "Set ONDC_ENABLED=true and subscriber keys to call the ONDC sandbox.");
-            if (recordPing) evidence.recordOndcPing(skipped);
-            return skipped;
-        }
-        ObjectNode payload = mapper.createObjectNode();
-        payload.set("context", newContext("search", "fintap.demo.bap", "https://mock.ondc.org/api/b2b/bap"));
-        payload.set("message", mapper.createObjectNode().set("intent",
-                mapper.createObjectNode().set("category", mapper.createObjectNode().put("id", "Grocery"))));
-        return callForEvidence(trimSlash(ondc.getMockBppUrl()) + "/search?mode=mock", write(payload), recordPing);
-    }
-
     private List<String> extractBuyerNames(String body) {
         List<String> names = new java.util.ArrayList<>();
         if (body == null || body.isBlank() || "null".equals(body)) return names;
         try {
             JsonNode root = mapper.readTree(body);
             collectDescriptorNames(root.path("message").path("catalog").path("providers"), names);
+            collectDescriptorNames(root.path("message").path("catalog").path("bpp/providers"), names);
             collectDescriptorNames(root.path("catalog").path("providers"), names);
             String bpp = text(root.path("message").path("catalog").path("bpp_descriptor").path("name"), "");
             if (!bpp.isBlank() && !names.contains(bpp)) names.add(bpp);
@@ -347,9 +421,9 @@ public class OndcNetworkService {
                 ? "" : properties.getOndc().getSiteVerificationToken();
     }
 
-    private ObjectNode confirmCallback(JsonNode request, String rawBody) {
+        private ObjectNode confirmCallback(JsonNode request, String rawBody) {
         OndcOrder stored = captureConfirm(request, rawBody);
-        ObjectNode response = orderCallback(request, "on_confirm", "Accepted");
+        ObjectNode response = orderCallback(request, "on_confirm", stored.getStatus().name());
         ((ObjectNode) response.path("message").path("order")).put("id", stored.getOrderRef());
         return response;
     }
@@ -530,7 +604,7 @@ public class OndcNetworkService {
                     .onStatus(HttpStatusCode::isError, (req, res) -> { }).toEntity(String.class);
             Map<String, Object> result = new LinkedHashMap<>();
             result.put("ok", entity.getStatusCode().is2xxSuccessful());
-            result.put("officialHost", url.contains("ondc.org"));
+            result.put("officialHost", officialPreprod(url));
             result.put("url", url);
             result.put("httpStatus", entity.getStatusCode().value());
             result.put("signed", authorization != null);
@@ -546,7 +620,7 @@ public class OndcNetworkService {
         } catch (RestClientException ex) {
             Map<String, Object> result = new LinkedHashMap<>();
             result.put("ok", false);
-            result.put("officialHost", url.contains("ondc.org"));
+            result.put("officialHost", officialPreprod(url));
             result.put("url", url);
             result.put("signed", authorization != null);
             result.put("error", ex.getMessage());
@@ -620,6 +694,11 @@ public class OndcNetworkService {
     private String write(JsonNode node) {
         try { return mapper.writeValueAsString(node); }
         catch (Exception ex) { throw new IllegalStateException(ex); }
+    }
+
+    private boolean officialPreprod(String url) {
+        if (url == null) return false;
+        return url.contains("preprod.gateway.ondc.org") || url.contains("preprod.registry.ondc.org");
     }
 
     private String money(BigDecimal value) { return value == null ? "0.00" : value.toPlainString(); }

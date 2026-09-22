@@ -139,6 +139,7 @@ void main() {
       await tester.tap(find.text('Connections'));
       await tester.pumpAndSettle();
       expect(find.text('Connect ONDC sandbox'), findsOneWidget);
+      expect(find.text('Ping preprod gateway'), findsOneWidget);
       expect(find.text('Add ONDC customer'), findsOneWidget);
       expect(tester.takeException(), isNull);
     }, () => MockClient((request) async {

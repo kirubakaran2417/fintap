@@ -60,6 +60,8 @@ public class IntegrationProperties {
         private String coreVersion = "1.2.0";
         private String bppId = "";
         private String bppUri = "";
+        private String bapId = "";
+        private String bapUri = "";
         private String country = "IND";
 
         public boolean isEnabled() {
@@ -220,6 +222,22 @@ public class IntegrationProperties {
 
         public void setBppUri(String bppUri) {
             this.bppUri = bppUri;
+        }
+
+        public String getBapId() {
+            return bapId == null || bapId.isBlank() ? "fintap.buyer.local" : bapId;
+        }
+
+        public void setBapId(String bapId) {
+            this.bapId = bapId;
+        }
+
+        public String getBapUri() {
+            return bapUri == null || bapUri.isBlank() ? subscriberUrl : bapUri;
+        }
+
+        public void setBapUri(String bapUri) {
+            this.bapUri = bapUri;
         }
 
         public String getCountry() {

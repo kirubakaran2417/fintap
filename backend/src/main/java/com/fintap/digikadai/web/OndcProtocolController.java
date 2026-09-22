@@ -22,9 +22,11 @@ import java.util.Map;
 public class OndcProtocolController {
 
     private final OndcNetworkService ondc;
+    private final com.fintap.digikadai.integration.ondc.OndcBuyerService buyer;
 
-    public OndcProtocolController(OndcNetworkService ondc) {
+    public OndcProtocolController(OndcNetworkService ondc, com.fintap.digikadai.integration.ondc.OndcBuyerService buyer) {
         this.ondc = ondc;
+        this.buyer = buyer;
     }
 
     @PostMapping("/search")
@@ -66,6 +68,40 @@ public class OndcProtocolController {
     @PostMapping("/on_subscribe")
     public Map<String, Object> onSubscribe(@RequestBody JsonNode body) {
         return Map.of("answer", ondc.answerSubscriptionChallenge(body));
+    }
+
+    @PostMapping("/on_search")
+    public Map<String, Object> onSearch(@RequestBody JsonNode body) {
+        buyer.ingestOnSearch(body);
+        return ondc.ack();
+    }
+
+    @PostMapping("/on_select")
+    public Map<String, Object> onSelect(@RequestBody JsonNode body) {
+        return ondc.ack();
+    }
+
+    @PostMapping("/on_init")
+    public Map<String, Object> onInit(@RequestBody JsonNode body) {
+        return ondc.ack();
+    }
+
+    @PostMapping("/on_confirm")
+    public Map<String, Object> onConfirm(@RequestBody JsonNode body) {
+        buyer.ingestOnStatus(body);
+        return ondc.ack();
+    }
+
+    @PostMapping("/on_status")
+    public Map<String, Object> onStatus(@RequestBody JsonNode body) {
+        buyer.ingestOnStatus(body);
+        return ondc.ack();
+    }
+
+    @PostMapping("/on_cancel")
+    public Map<String, Object> onCancel(@RequestBody JsonNode body) {
+        buyer.ingestOnStatus(body);
+        return ondc.ack();
     }
 
     private Map<String, Object> accept(String action, String body, String authorization) {

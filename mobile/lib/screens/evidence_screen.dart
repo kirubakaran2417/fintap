@@ -114,7 +114,7 @@ class _EvidenceScreenState extends State<EvidenceScreen> {
                   actions: [
                     FilledButton(
                       onPressed: busy ? null : () => _run(api.pingOndc(), 'Ping recorded'),
-                      child: const Text('Ping mock.ondc.org'),
+                      child: const Text('Ping preprod gateway'),
                     ),
                   ],
                 ),

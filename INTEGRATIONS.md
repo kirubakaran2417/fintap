@@ -23,9 +23,9 @@ ONDC_VERIFY_INCOMING=true
 
 `POST /api/integrations/ondc/keys` creates signing and encryption key pairs for initial setup. Store the private keys in a secret manager; the application does not persist newly generated private keys.
 
-Incoming `search`, `select`, `init`, `confirm`, `status`, and `cancel` requests are validated and ACKed immediately. Their signed `on_*` callbacks run asynchronously. Transient callback failures are retried up to three times; 4xx responses fail immediately. The latest result appears in `GET /api/integrations/evidence` as `ondcCallback`.
+Incoming `search`, `select`, `init`, `confirm`, `status`, and `cancel` are BPP actions. Incoming `on_search`, `on_select`, `on_init`, `on_confirm`, `on_status`, and `on_cancel` are BAP callbacks used by the FinTap buyer app.
 
-For local protocol testing only, set `ONDC_VERIFY_INCOMING=false` and `ONDC_ALLOW_HTTP_CALLBACKS=true`. Never use those values on a public deployment.
+Local development defaults (`ONDC_VERIFY_INCOMING=false`, `ONDC_ALLOW_HTTP_CALLBACKS=true`) post `/search` to `https://preprod.gateway.ondc.org/search` first, then fall back to `http://localhost:8080/protocol/v1/search` so published FinTap SKUs still appear in the buyer app. Never use those flags on a public deployment; set them to `true` / `false` after you have a public HTTPS subscriber URL.
 
 ## Mastercard MPGS
 

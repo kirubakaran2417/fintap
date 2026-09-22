@@ -48,7 +48,7 @@ public class DemoEvidenceService {
 
     public Map<String, Object> snapshot() {
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("disclaimer", "Live proof is a call whose URL host is mock.ondc.org, preprod.registry.ondc.org, test-gateway.mastercard.com, or api.razorpay.com.");
+        body.put("disclaimer", "Live proof is a call whose URL host is preprod.gateway.ondc.org, preprod.registry.ondc.org, test-gateway.mastercard.com, or api.razorpay.com.");
         body.put("ondcPing", copy(ondcPing));
         body.put("ondcLookup", copy(ondcLookup));
         body.put("ondcCallback", copy(ondcCallback));

@@ -16,6 +16,7 @@ import com.fintap.digikadai.dto.HomeSummaryDto;
 import com.fintap.digikadai.dto.InsightDto;
 import com.fintap.digikadai.dto.KhataDto;
 import com.fintap.digikadai.dto.OndcOrderDto;
+import com.fintap.digikadai.integration.ondc.OndcNetworkService;
 import com.fintap.digikadai.repo.CatalogItemRepository;
 import com.fintap.digikadai.repo.CustomerProfileRepository;
 import com.fintap.digikadai.repo.InsightRepository;
@@ -52,6 +53,7 @@ public class CommerceService {
     private final InsightRepository insights;
     private final CustomerProfileRepository profiles;
     private final PaymentService payments;
+    private final OndcNetworkService ondc;
 
     public CommerceService(
             CatalogItemRepository catalog,
@@ -59,7 +61,8 @@ public class CommerceService {
             KhataEntryRepository khata,
             InsightRepository insights,
             CustomerProfileRepository profiles,
-            PaymentService payments
+            PaymentService payments,
+            OndcNetworkService ondc
     ) {
         this.catalog = catalog;
         this.orders = orders;
@@ -67,6 +70,7 @@ public class CommerceService {
         this.insights = insights;
         this.profiles = profiles;
         this.payments = payments;
+        this.ondc = ondc;
     }
 
     public HomeSummaryDto home(Merchant merchant) {
@@ -196,7 +200,14 @@ public class CommerceService {
                 .filter(found -> found.getMerchant().getId().equals(merchant.getId()))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
         order.setStatus(status);
-        return toOrder(orders.save(order));
+        order.setUpdatedAt(Instant.now());
+        orders.save(order);
+        if (status == OndcOrderStatus.ACCEPTED || status == OndcOrderStatus.CANCELLED
+                || status == OndcOrderStatus.PACKED || status == OndcOrderStatus.DISPATCHED
+                || status == OndcOrderStatus.DELIVERED) {
+            ondc.notifyBuyerStatus(order);
+        }
+        return toOrder(order);
     }
 
     public List<KhataDto> khata(Merchant merchant) {

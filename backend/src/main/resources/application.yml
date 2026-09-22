@@ -40,16 +40,18 @@ integrations:
     encryption-public-key: ${ONDC_ENCRYPTION_PUBLIC_KEY:}
     registry-encryption-public-key: ${ONDC_REGISTRY_ENCRYPTION_PUBLIC_KEY:}
     site-verification-token: ${ONDC_SITE_VERIFICATION_TOKEN:}
-    verify-incoming: ${ONDC_VERIFY_INCOMING:true}
-    allow-http-callbacks: ${ONDC_ALLOW_HTTP_CALLBACKS:false}
+    verify-incoming: ${ONDC_VERIFY_INCOMING:false}
+    allow-http-callbacks: ${ONDC_ALLOW_HTTP_CALLBACKS:true}
     registry-url: ${ONDC_REGISTRY_URL:https://preprod.registry.ondc.org}
     gateway-url: ${ONDC_GATEWAY_URL:https://preprod.gateway.ondc.org}
-    mock-bpp-url: ${ONDC_MOCK_BPP_URL:https://mock.ondc.org/api/b2b/bpp}
+    mock-bpp-url: ${ONDC_MOCK_BPP_URL:}
     domain: ${ONDC_DOMAIN:ONDC:RET10}
     city: ${ONDC_CITY:std:080}
     core-version: "1.2.0"
-    bpp-id: ${ONDC_BPP_ID:}
+    bpp-id: ${ONDC_BPP_ID:fintap.local}
     bpp-uri: ${ONDC_BPP_URI:http://localhost:8080/protocol/v1}
+    bap-id: ${ONDC_BAP_ID:fintap.buyer.local}
+    bap-uri: ${ONDC_BAP_URI:http://localhost:8080/protocol/v1}
     country: IND
   mastercard:
     gateway-enabled: ${MC_GATEWAY_ENABLED:true}
