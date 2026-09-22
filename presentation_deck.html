@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FinTap — Pitch & Evaluator Presentation Deck</title>
+    <title>FinTap — Project Presentation Deck</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
@@ -96,9 +96,10 @@
             font-size: 0.8rem;
             color: var(--text-muted);
             background: rgba(255, 255, 255, 0.05);
-            padding: 4px 10px;
+            padding: 4px 12px;
             border-radius: 6px;
             border: 1px solid var(--border-subtle);
+            letter-spacing: 0.5px;
         }
 
         /* Deck Viewport */
@@ -121,7 +122,7 @@
             backdrop-filter: blur(16px);
             border: 1px solid var(--border-subtle);
             border-radius: 20px;
-            padding: 40px 48px;
+            padding: 44px 52px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
@@ -150,7 +151,7 @@
             font-weight: 700;
             letter-spacing: 0.8px;
             text-transform: uppercase;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
         }
         .badge-teal { background: rgba(0, 229, 183, 0.12); color: var(--accent-teal); border: 1px solid rgba(0, 229, 183, 0.3); }
         .badge-purple { background: rgba(139, 92, 246, 0.12); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.3); }
@@ -159,7 +160,7 @@
 
         h1 {
             font-family: 'Outfit', sans-serif;
-            font-size: 3.2rem;
+            font-size: 3.4rem;
             font-weight: 800;
             line-height: 1.08;
             letter-spacing: -1px;
@@ -171,7 +172,7 @@
 
         h2 {
             font-family: 'Outfit', sans-serif;
-            font-size: 2.2rem;
+            font-size: 2.3rem;
             font-weight: 700;
             letter-spacing: -0.5px;
             margin-bottom: 8px;
@@ -179,23 +180,23 @@
         }
 
         p.subtitle {
-            font-size: 1.05rem;
+            font-size: 1.1rem;
             color: var(--text-muted);
             line-height: 1.5;
-            margin-bottom: 24px;
+            margin-bottom: 28px;
         }
 
         /* Layout Grids */
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: center; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: center; }
         .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
-        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
 
         /* Feature & Metric Cards */
         .card {
             background: var(--bg-card);
             border: 1px solid var(--border-subtle);
             border-radius: 14px;
-            padding: 20px 24px;
+            padding: 22px 26px;
             transition: all 0.25s ease;
             position: relative;
             overflow: hidden;
@@ -218,14 +219,14 @@
         }
 
         .card p {
-            font-size: 0.9rem;
+            font-size: 0.92rem;
             color: var(--text-muted);
-            line-height: 1.5;
+            line-height: 1.55;
         }
 
         .stat-number {
             font-family: 'Outfit', sans-serif;
-            font-size: 2.4rem;
+            font-size: 2.6rem;
             font-weight: 800;
             color: var(--accent-teal);
             line-height: 1;
@@ -242,7 +243,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            max-height: 380px;
+            max-height: 400px;
         }
         .image-frame img {
             width: 100%;
@@ -264,7 +265,7 @@
         svg.architecture-svg {
             width: 100%;
             height: auto;
-            max-height: 360px;
+            max-height: 380px;
         }
 
         .svg-node {
@@ -289,9 +290,9 @@
             background: #090d16;
             border: 1px solid var(--border-subtle);
             border-radius: 10px;
-            padding: 16px;
+            padding: 18px;
             font-family: 'Fira Code', monospace;
-            font-size: 0.82rem;
+            font-size: 0.85rem;
             color: #7dd3fc;
             line-height: 1.6;
             overflow-x: auto;
@@ -299,20 +300,6 @@
         .code-box .kw { color: #f472b6; }
         .code-box .str { color: #a7f3d0; }
         .code-box .comment { color: #6b7280; font-style: italic; }
-
-        /* Speaker Notes Footer inside Slide */
-        .speaker-notes {
-            background: rgba(0, 229, 183, 0.05);
-            border-left: 3px solid var(--accent-teal);
-            padding: 12px 18px;
-            border-radius: 0 10px 10px 0;
-            font-size: 0.85rem;
-            color: #cbd5e1;
-            margin-top: 16px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
 
         /* Controls Footer */
         .footer-controls {
@@ -335,7 +322,7 @@
             background: var(--bg-card);
             border: 1px solid var(--border-subtle);
             color: var(--text-main);
-            padding: 9px 20px;
+            padding: 9px 22px;
             border-radius: 8px;
             font-weight: 600;
             font-size: 0.88rem;
@@ -385,7 +372,7 @@
             <div class="brand-logo">F</div>
             <span>FinTap <span style="font-weight: 400; color: var(--accent-teal);">(DigiKadai)</span></span>
         </div>
-        <div class="header-tag">Evaluator Pitch Deck • Confidential</div>
+        <div class="header-tag">FinTap • Official Project Presentation</div>
     </header>
 
     <div class="deck-container">
@@ -394,11 +381,11 @@
         <div class="slide active">
             <div class="grid-2" style="height: 100%;">
                 <div>
-                    <span class="badge badge-teal">⚡ Final Project Evaluation Pitch</span>
+                    <span class="badge badge-teal">⚡ Project Presentation</span>
                     <h1>FinTap (DigiKadai)</h1>
                     <p class="subtitle">Unified Operating System for MSMEs & Kirana Retailers powered by ONDC Open Commerce, Meta WhatsApp API & Universal Fintech.</p>
                     
-                    <div class="grid-2" style="margin-top: 16px;">
+                    <div class="grid-2" style="margin-top: 24px;">
                         <div class="card">
                             <div class="stat-number">0%</div>
                             <h3>Commission Commerce</h3>
@@ -416,20 +403,16 @@
                     <img src="assets/images/fintap_app_dashboard.jpg" alt="FinTap App UI Dashboard Mockup">
                 </div>
             </div>
-
-            <div class="speaker-notes">
-                💡 <strong>Evaluator Note:</strong> FinTap turns traditional offline Kirana stores into digitally empowered omni-channel sellers in under 60 seconds with zero commission fees.
-            </div>
         </div>
 
         <!-- SLIDE 2: Problem Statement -->
         <div class="slide">
             <div>
-                <span class="badge badge-purple">01 • Market Vulnerability</span>
+                <span class="badge badge-purple">01 • Market Challenge</span>
                 <h2>The Crisis Facing 60 Million Kirana Retailers</h2>
                 <p class="subtitle">Small merchants are caught between predatory aggregator commissions and unorganized paper workflows.</p>
 
-                <div class="grid-4" style="margin-top: 16px;">
+                <div class="grid-4" style="margin-top: 24px;">
                     <div class="card">
                         <div style="font-size: 1.8rem; margin-bottom: 8px;">💸</div>
                         <h3>25–30% Platform Cut</h3>
@@ -452,10 +435,6 @@
                     </div>
                 </div>
             </div>
-
-            <div class="speaker-notes">
-                💡 <strong>Evaluator Note:</strong> Highlight that MSMEs don't need complex enterprise ERPs—they need an intuitive mobile app built for instant execution.
-            </div>
         </div>
 
         <!-- SLIDE 3: Solution Architecture Overview -->
@@ -467,11 +446,11 @@
 
                 <div class="grid-2">
                     <div>
-                        <div class="card" style="margin-bottom: 12px;">
+                        <div class="card" style="margin-bottom: 16px;">
                             <h3>🛍️ ONDC Beckn Open Commerce</h3>
                             <p>Publishes store inventory onto ONDC network; buyers on Paytm, PhonePe, and Mystore can search and buy directly.</p>
                         </div>
-                        <div class="card" style="margin-bottom: 12px;">
+                        <div class="card" style="margin-bottom: 16px;">
                             <h3>💬 Meta WhatsApp Business Cloud API</h3>
                             <p>Direct background message dispatch (`wamid...`) for customer debt reminders, delivery alerts, and re-engagement.</p>
                         </div>
@@ -484,10 +463,6 @@
                         <img src="assets/images/fintap_ondc_architecture.jpg" alt="ONDC Architecture Visual">
                     </div>
                 </div>
-            </div>
-
-            <div class="speaker-notes">
-                💡 <strong>Evaluator Note:</strong> FinTap seamlessly bridges offline Kirana commerce with national digital buyer networks.
             </div>
         </div>
 
@@ -557,16 +532,12 @@
                     </svg>
                 </div>
             </div>
-
-            <div class="speaker-notes">
-                💡 <strong>Evaluator Note:</strong> Notice how clean the separation of concerns is—Spring Data JPA manages relational models while external adapters handle Beckn, Meta, Dunzo, and MPGS.
-            </div>
         </div>
 
         <!-- SLIDE 5: ONDC Beckn Protocol Flow Diagram -->
         <div class="slide">
             <div>
-                <span class="badge badge-teal">04 • Open Commerce Flow</span>
+                <span class="badge badge-teal">04 • Open Commerce Protocol</span>
                 <h2>ONDC Beckn Protocol Sequence Lifecycle</h2>
                 <p class="subtitle">Complete asynchronous callback flow implementing Beckn v1.0.0 schema standard.</p>
 
@@ -611,23 +582,19 @@
                     </svg>
                 </div>
             </div>
-
-            <div class="speaker-notes">
-                💡 <strong>Evaluator Note:</strong> FinTap implements cryptographic Ed25519 signatures and X25519 key exchange on all incoming protocol headers for total security.
-            </div>
         </div>
 
         <!-- SLIDE 6: Automated Dunzo Logistics & WhatsApp Engine -->
         <div class="slide">
             <div>
-                <span class="badge badge-gold">05 • Automated Dispatch & Nudge</span>
+                <span class="badge badge-gold">05 • Automated Logistics & Direct Messaging</span>
                 <h2>Dunzo Pickup & Meta WhatsApp Direct Dispatch</h2>
                 <p class="subtitle">Instant order dispatch triggers paired with direct server-to-server customer messaging.</p>
 
                 <div class="grid-2">
                     <div class="card">
                         <h3>🚚 Dunzo Automated Fulfillment Flow</h3>
-                        <div class="code-box" style="margin-top: 10px;">
+                        <div class="code-box" style="margin-top: 12px;">
                             [NEW ONDC ORDER]<br>
                             &nbsp;&nbsp;↓ Tap "Dispatch with DUNZO"<br>
                             [STATUS: ASSIGNED_DUNZO]<br>
@@ -636,12 +603,12 @@
                             &nbsp;&nbsp;↓ Rider En Route<br>
                             [STATUS: DISPATCHED] → [DELIVERED]
                         </div>
-                        <p style="margin-top: 10px; font-size: 0.85rem;">Status enums stored cleanly as `VARCHAR(64)` in H2 DB via automated schema migration.</p>
+                        <p style="margin-top: 12px; font-size: 0.88rem;">Status enums stored cleanly as `VARCHAR(64)` in H2 DB via automated schema migration.</p>
                     </div>
 
                     <div class="card">
                         <h3>💬 Meta WhatsApp Cloud API Payload</h3>
-                        <div class="code-box" style="margin-top: 10px;">
+                        <div class="code-box" style="margin-top: 12px;">
                             <span class="kw">POST</span> /v18.0/<span class="str">1299091523294543</span>/messages<br>
                             {<br>
                             &nbsp;&nbsp;<span class="kw">"messaging_product"</span>: <span class="str">"whatsapp"</span>,<br>
@@ -654,10 +621,6 @@
                     </div>
                 </div>
             </div>
-
-            <div class="speaker-notes">
-                💡 <strong>Evaluator Note:</strong> When Meta API credentials are present in `application.yml`, `NudgeService.java` sends live messages directly. If missing, it uses FinTap's live gateway simulator.
-            </div>
         </div>
 
         <!-- SLIDE 7: Mastercard MPGS Payment Infrastructure -->
@@ -667,7 +630,7 @@
                 <h2>Mastercard Hosted Checkout (MPGS) & Smart Router</h2>
                 <p class="subtitle">Multi-rail payment authorization with 3D-Secure 2.0 and voice prompt reconciliation.</p>
 
-                <div class="grid-4" style="margin-top: 16px;">
+                <div class="grid-4" style="margin-top: 20px;">
                     <div class="card">
                         <h3>💳 Hosted Checkout</h3>
                         <p>API v100 integration with Mastercard Gateway for PCI-DSS compliant card processing.</p>
@@ -686,22 +649,18 @@
                     </div>
                 </div>
 
-                <div class="code-box" style="margin-top: 20px;">
+                <div class="code-box" style="margin-top: 24px;">
                     <span class="comment">// Mastercard Hosted Session Request</span><br>
                     <span class="kw">POST</span> https://ap-gateway.mastercard.com/api/rest/version/100/merchant/{merchantId}/session<br>
                     <span class="comment">// Response Token: SESSION0002847192847192847</span>
                 </div>
-            </div>
-
-            <div class="speaker-notes">
-                💡 <strong>Evaluator Note:</strong> Mastercard integration enables Kiranas to accept card payments globally without purchasing expensive hardware point-of-sale machines.
             </div>
         </div>
 
         <!-- SLIDE 8: Financial Inclusion & e-Mudra Credit Scoring -->
         <div class="slide">
             <div>
-                <span class="badge badge-gold">07 • Financial Inclusion</span>
+                <span class="badge badge-gold">07 • Financial Inclusion Model</span>
                 <h2>e-Mudra Micro-Loans & Digital Udhaar Ledger</h2>
                 <p class="subtitle">Converting daily Kirana cashflow into verifiable credit scores for collateral-free loans.</p>
 
@@ -709,7 +668,7 @@
                     <div class="card">
                         <h3>📊 Cashflow Credit Underwriting Scorer</h3>
                         <p>Evaluates 4 key metrics to automatically underwrite micro-loans:</p>
-                        <ul style="margin-top: 10px; margin-left: 20px; font-size: 0.9rem; color: var(--text-muted); line-height: 1.8;">
+                        <ul style="margin-top: 14px; margin-left: 20px; font-size: 0.92rem; color: var(--text-muted); line-height: 1.8;">
                             <li><strong>ONDC Order Velocity:</strong> Repeat buyer frequency</li>
                             <li><strong>Khata Settlement Rate:</strong> Average days to collect credit</li>
                             <li><strong>Mastercard/UPI Volume:</strong> Verifiable digital revenues</li>
@@ -719,22 +678,18 @@
 
                     <div class="card" style="display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; border-color: var(--accent-gold);">
                         <span class="badge badge-gold" style="font-size: 0.9rem;">Pre-Approved Loan Offer</span>
-                        <div class="stat-number" style="font-size: 3.5rem; color: var(--accent-gold); margin: 10px 0;">₹1,00,000</div>
-                        <p style="font-size: 1rem; color: #fff; font-weight: 700;">Collateral-Free e-Mudra Sanction</p>
-                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">11.5% p.a. • Instant 1-Tap Disbursement</p>
+                        <div class="stat-number" style="font-size: 3.8rem; color: var(--accent-gold); margin: 12px 0;">₹1,00,000</div>
+                        <p style="font-size: 1.05rem; color: #fff; font-weight: 700;">Collateral-Free e-Mudra Sanction</p>
+                        <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 6px;">11.5% p.a. • Instant 1-Tap Disbursement</p>
                     </div>
                 </div>
-            </div>
-
-            <div class="speaker-notes">
-                💡 <strong>Evaluator Note:</strong> This breaks the vicious cycle of informal moneylenders charging 36%+ interest rates to Kirana owners.
             </div>
         </div>
 
         <!-- SLIDE 9: Code Class Architecture & Package Map -->
         <div class="slide">
             <div>
-                <span class="badge badge-blue">08 • Codebase Integrity</span>
+                <span class="badge badge-blue">08 • System Architecture & Code Integrity</span>
                 <h2>Class Architecture & Package Structure</h2>
                 <p class="subtitle">Clean Architecture separation across Java Spring Boot backend and Flutter frontend.</p>
 
@@ -770,18 +725,14 @@
                     </div>
                 </div>
             </div>
-
-            <div class="speaker-notes">
-                💡 <strong>Evaluator Note:</strong> 100% clean build verification: `mvn compile` succeeds with zero errors, and `flutter analyze` reports 0 issues.
-            </div>
         </div>
 
-        <!-- SLIDE 10: Live Demo Script & Verification -->
+        <!-- SLIDE 10: Live Execution Flow & Verification -->
         <div class="slide">
             <div>
-                <span class="badge badge-teal">09 • Live Pitch Demo Guide</span>
-                <h2>4-Step Evaluator Demo Sequence</h2>
-                <p class="subtitle">Follow this step-by-step path to test all core capabilities live during evaluation.</p>
+                <span class="badge badge-teal">09 • System Execution Flow</span>
+                <h2>End-to-End Operational Lifecycle</h2>
+                <p class="subtitle">Demonstrating product scanning, order dispatch, payment processing, and background messaging.</p>
 
                 <div class="grid-2">
                     <div class="card">
@@ -802,20 +753,16 @@
                     </div>
                 </div>
             </div>
-
-            <div class="speaker-notes">
-                💡 <strong>Evaluator Note:</strong> This exact demo sequence takes under 3 minutes and covers all core innovation pillars of FinTap.
-            </div>
         </div>
 
         <!-- SLIDE 11: Conclusion & Q&A -->
         <div class="slide">
             <div>
-                <span class="badge badge-purple">10 • Conclusion</span>
+                <span class="badge badge-purple">10 • Conclusion & Scalability</span>
                 <h2>FinTap — Production Ready for Scale</h2>
                 <p class="subtitle">Empowering India's 60M+ small merchants with Open Commerce & Universal Fintech Infrastructure.</p>
 
-                <div class="grid-3" style="margin-top: 24px;">
+                <div class="grid-3" style="margin-top: 32px;">
                     <div class="card">
                         <div class="stat-number">100%</div>
                         <h3>Beckn Compliant</h3>
@@ -832,10 +779,6 @@
                         <p>Direct background message dispatch with Meta Cloud API tokens.</p>
                     </div>
                 </div>
-            </div>
-
-            <div class="speaker-notes">
-                💡 <strong>Evaluator Note:</strong> Thank you! We are now open for Evaluator Questions & Answers.
             </div>
         </div>
 
