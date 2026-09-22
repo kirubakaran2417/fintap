@@ -1,6 +1,7 @@
 package com.fintap.digikadai.service;
 
 import com.fintap.digikadai.domain.CustomerProfile;
+import com.fintap.digikadai.domain.KhataEntry;
 import com.fintap.digikadai.domain.Merchant;
 import com.fintap.digikadai.domain.Payment;
 import com.fintap.digikadai.domain.PaymentRail;
@@ -10,13 +11,17 @@ import com.fintap.digikadai.dto.PaymentDto;
 import com.fintap.digikadai.dto.RoutingAdviceDto;
 import com.fintap.digikadai.integration.mastercard.MastercardGatewayService;
 import com.fintap.digikadai.repo.CustomerProfileRepository;
+import com.fintap.digikadai.repo.KhataEntryRepository;
 import com.fintap.digikadai.repo.PaymentRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Locale;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +35,7 @@ public class PaymentService {
     private final CustomerProfileRepository profiles;
     private final MastercardGatewayService mastercard;
     private final com.fintap.digikadai.integration.razorpay.RazorpayGatewayService razorpay;
+    private final KhataEntryRepository khataEntries;
 
     public PaymentService(
             PaymentRepository payments,
@@ -37,10 +43,22 @@ public class PaymentService {
             MastercardGatewayService mastercard,
             com.fintap.digikadai.integration.razorpay.RazorpayGatewayService razorpay
     ) {
+        this(payments, profiles, mastercard, razorpay, null);
+    }
+
+    @Autowired
+    public PaymentService(
+            PaymentRepository payments,
+            CustomerProfileRepository profiles,
+            MastercardGatewayService mastercard,
+            com.fintap.digikadai.integration.razorpay.RazorpayGatewayService razorpay,
+            KhataEntryRepository khataEntries
+    ) {
         this.payments = payments;
         this.profiles = profiles;
         this.mastercard = mastercard;
         this.razorpay = razorpay;
+        this.khataEntries = khataEntries;
     }
 
     public RoutingAdviceDto route(BigDecimal amount) {
@@ -291,7 +309,40 @@ public class PaymentService {
     }
 
     public List<PaymentDto> recent(Merchant merchant) {
-        return payments.findByMerchantOrderByCreatedAtDesc(merchant).stream().map(this::toDto).toList();
+        List<PaymentDto> list = new ArrayList<>(
+                payments.findByMerchantOrderByCreatedAtDesc(merchant).stream().map(this::toDto).toList()
+        );
+        if (khataEntries != null) {
+            List<PaymentDto> khataList = khataEntries.findByMerchantOrderByCreatedAtDesc(merchant).stream()
+                    .map(this::toKhataPaymentDto)
+                    .toList();
+            list.addAll(khataList);
+            list.sort(Comparator.comparing(PaymentDto::createdAt, Comparator.nullsLast(Comparator.reverseOrder())));
+        }
+        return list;
+    }
+
+    private PaymentDto toKhataPaymentDto(KhataEntry entry) {
+        boolean credit = entry.isCredit();
+        String note = credit ? "Repayment received" : "Khata credit (Udhaar)";
+        if (entry.getNote() != null && !entry.getNote().isBlank()) {
+            note += " · " + entry.getNote();
+        }
+        return new PaymentDto(
+                entry.getId(),
+                entry.getAmount(),
+                PaymentRail.KHATA,
+                TransactionStatus.SUCCESS,
+                entry.getCustomerName() != null && !entry.getCustomerName().isBlank() ? entry.getCustomerName() : "Customer",
+                entry.getMobile(),
+                "KHATA-" + (credit ? "REPAY-" : "GIVEN-") + entry.getId(),
+                entry.getCreatedAt() != null ? entry.getCreatedAt() : Instant.now(),
+                null,
+                null,
+                null,
+                "KHATA",
+                note
+        );
     }
 
     public List<Payment> all(Merchant merchant) {

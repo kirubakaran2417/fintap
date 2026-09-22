@@ -278,6 +278,20 @@ public class CommerceService {
         entry.setAmount(request.amount());
         entry.setCredit(request.credit());
         entry.setNote(request.note());
+        if (request.entryDate() != null && !request.entryDate().isBlank()) {
+            try {
+                entry.setCreatedAt(Instant.parse(request.entryDate()));
+            } catch (Exception ex1) {
+                try {
+                    LocalDate ld = LocalDate.parse(request.entryDate());
+                    entry.setCreatedAt(ld.atStartOfDay(ZoneId.of("Asia/Kolkata")).toInstant());
+                } catch (Exception ex2) {
+                    entry.setCreatedAt(Instant.now());
+                }
+            }
+        } else {
+            entry.setCreatedAt(Instant.now());
+        }
         return toKhata(khata.save(entry));
     }
 

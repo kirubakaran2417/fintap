@@ -151,6 +151,9 @@ class ApiClient {
   Future<Map<String, dynamic>> updateOrder(int id, String status) =>
       _post('/api/ondc/orders/$id/status', {'status': status});
 
+  Future<List<dynamic>> payments({String? rail}) =>
+      _getList(rail != null && rail.isNotEmpty ? '/api/payments?rail=$rail' : '/api/payments');
+
   Future<List<dynamic>> khata() => _getList('/api/khata');
 
   Future<Map<String, dynamic>> addKhata(Map<String, dynamic> payload) =>

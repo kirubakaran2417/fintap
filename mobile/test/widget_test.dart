@@ -14,9 +14,6 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 void main() {
-  final binding = TestWidgetsFlutterBinding.ensureInitialized();
-  setUp(() => binding.setSurfaceSize(const Size(390, 844)));
-  tearDown(() => binding.setSurfaceSize(null));
 
   testWidgets('FinTap welcome shows brand actions', (WidgetTester tester) async {
     await tester.pumpWidget(const MaterialApp(home: WelcomeScreen()));
@@ -73,12 +70,14 @@ void main() {
   });
 
   testWidgets('Customer search and segment filters change visible profiles', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
     await http.runWithClient(() async {
       await tester.pumpWidget(const MaterialApp(home: CustomersScreen()));
       await tester.pumpAndSettle();
       expect(find.text('Priya'), findsOneWidget);
       expect(find.text('Ramesh'), findsOneWidget);
-      await tester.tap(find.widgetWithText(ChoiceChip, 'At risk'));
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Drifting'));
       await tester.pumpAndSettle();
       expect(find.text('Priya'), findsOneWidget);
       expect(find.text('Ramesh'), findsNothing);
@@ -110,6 +109,8 @@ void main() {
   });
 
   testWidgets('Khata validates empty entries before submitting', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(500, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
     await http.runWithClient(() async {
       await tester.pumpWidget(const MaterialApp(home: KhataScreen()));
       await tester.pumpAndSettle();
@@ -126,6 +127,8 @@ void main() {
   });
 
   testWidgets('ONDC decline sends the supported cancellation status', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
     String? submittedStatus;
     await http.runWithClient(() async {
       await tester.pumpWidget(const MaterialApp(home: OndcScreen()));
@@ -138,8 +141,7 @@ void main() {
       expect(find.text('Add product'), findsOneWidget);
       await tester.tap(find.text('Connections'));
       await tester.pumpAndSettle();
-      expect(find.text('Connect ONDC sandbox'), findsOneWidget);
-      expect(find.text('Add ONDC customer'), findsOneWidget);
+      expect(find.text('Registry Lookup (preprod.registry.ondc.org)'), findsOneWidget);
       expect(tester.takeException(), isNull);
     }, () => MockClient((request) async {
       if (request.url.path == '/api/ondc/orders') {

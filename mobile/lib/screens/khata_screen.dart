@@ -17,6 +17,7 @@ class _KhataScreenState extends State<KhataScreen> {
   bool loading = true;
   String? error;
   final name = TextEditingController();
+  final mobile = TextEditingController();
   final amount = TextEditingController();
   final notes = TextEditingController(text: '');
 
@@ -29,10 +30,14 @@ class _KhataScreenState extends State<KhataScreen> {
   @override
   void dispose() {
     name.dispose();
+    mobile.dispose();
     amount.dispose();
     notes.dispose();
     super.dispose();
   }
+
+  bool _isSameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
 
   Future<void> _load() async {
     try {
@@ -48,8 +53,10 @@ class _KhataScreenState extends State<KhataScreen> {
 
   Future<void> _showEntry() async {
     name.clear();
+    mobile.clear();
     amount.clear();
     notes.clear();
+    DateTime selectedDate = DateTime.now();
     final form = GlobalKey<FormState>();
     bool credit = false;
     bool saving = false;
@@ -82,13 +89,97 @@ class _KhataScreenState extends State<KhataScreen> {
                     selected: {credit},
                     onSelectionChanged: saving ? null : (value) => updateSheet(() => credit = value.first),
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 14),
+                  InkWell(
+                    onTap: saving
+                        ? null
+                        : () async {
+                            final now = DateTime.now();
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: selectedDate,
+                              firstDate: DateTime(2020),
+                              lastDate: now.add(const Duration(days: 30)),
+                              helpText: 'Select Khata Entry Date',
+                            );
+                            if (picked != null) {
+                              updateSheet(() => selectedDate = picked);
+                            }
+                          },
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: FtColors.border),
+                        borderRadius: BorderRadius.circular(10),
+                        color: FtColors.bg,
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.calendar_month_outlined, color: FtColors.gold, size: 20),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('Entry date', style: TextStyle(fontSize: 10.5, color: FtColors.muted)),
+                                Text(
+                                  formatDate(selectedDate),
+                                  style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: FtColors.ink),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEF3C7),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text('Change date', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFFB45309))),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      ChoiceChip(
+                        label: const Text('Today', style: TextStyle(fontSize: 11)),
+                        selected: _isSameDay(selectedDate, DateTime.now()),
+                        onSelected: saving
+                            ? null
+                            : (val) {
+                                if (val) updateSheet(() => selectedDate = DateTime.now());
+                              },
+                      ),
+                      const SizedBox(width: 8),
+                      ChoiceChip(
+                        label: const Text('Yesterday', style: TextStyle(fontSize: 11)),
+                        selected: _isSameDay(selectedDate, DateTime.now().subtract(const Duration(days: 1))),
+                        onSelected: saving
+                            ? null
+                            : (val) {
+                                if (val) updateSheet(() => selectedDate = DateTime.now().subtract(const Duration(days: 1)));
+                              },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
                   TextFormField(
                     controller: name,
                     enabled: !saving,
                     textCapitalization: TextCapitalization.words,
                     decoration: const InputDecoration(labelText: 'Customer name', prefixIcon: Icon(Icons.person_outline)),
                     validator: (value) => value == null || value.trim().isEmpty ? 'Enter a customer name' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: mobile,
+                    enabled: !saving,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(labelText: 'Customer mobile (optional)', prefixIcon: Icon(Icons.phone_outlined)),
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
@@ -120,10 +211,11 @@ class _KhataScreenState extends State<KhataScreen> {
                       try {
                         await api.addKhata({
                           'customerName': name.text.trim(),
-                          'mobile': '',
+                          'mobile': mobile.text.trim(),
                           'amount': double.parse(amount.text),
                           'credit': credit,
                           'note': (notes.text.trim().isNotEmpty ? notes.text.trim() : (credit ? 'Repayment' : 'Udhaar')),
+                          'entryDate': selectedDate.toIso8601String(),
                         });
                         if (!sheetContext.mounted) return;
                         updateSheet(() => saving = false);
@@ -146,14 +238,25 @@ class _KhataScreenState extends State<KhataScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final given = rows.where((row) => row['credit'] != true).fold<num>(0, (total, row) => total + asNum(row['amount']));
-    final recovered = rows.where((row) => row['credit'] == true).fold<num>(0, (total, row) => total + asNum(row['amount']));
-    final customerCount = rows.map((row) => row['customerName'].toString().trim().toLowerCase()).toSet().length;
+    num given = 0;
+    num recovered = 0;
+    final customers = <String>{};
+    for (final item in rows) {
+      final map = item as Map<String, dynamic>;
+      final amt = asNum(map['amount']);
+      if (map['credit'] == true) {
+        recovered += amt;
+      } else {
+        given += amt;
+      }
+      final cname = map['customerName']?.toString();
+      if (cname != null && cname.isNotEmpty) customers.add(cname);
+    }
+    final customerCount = customers.length;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Digital khata'),
-        backgroundColor: FtColors.gold,
-        actions: [IconButton(tooltip: 'Refresh ledger', onPressed: _load, icon: const Icon(Icons.refresh))],
+        actions: [IconButton(onPressed: _load, icon: const Icon(Icons.refresh))],
       ),
       floatingActionButton: FloatingActionButton(
         tooltip: 'Add khata entry',
@@ -189,6 +292,7 @@ class _KhataScreenState extends State<KhataScreen> {
                   final map = item as Map<String, dynamic>;
                   final credit = map['credit'] == true;
                   final customerName = map['customerName']?.toString() ?? 'Customer';
+                  final dateStr = formatDate(map['createdAt']);
                   return Card(
                     margin: const EdgeInsets.only(bottom: 8),
                     child: ListTile(
@@ -200,7 +304,21 @@ class _KhataScreenState extends State<KhataScreen> {
                         child: Text(customerName.isEmpty ? '?' : customerName.characters.first.toUpperCase()),
                       ),
                       title: Text(customerName, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
-                      subtitle: Text(map['note']?.toString() ?? (credit ? 'Repayment' : 'Udhaar'), style: const TextStyle(fontSize: 11, color: FtColors.muted)),
+                      subtitle: Row(
+                        children: [
+                          if (dateStr.isNotEmpty) ...[
+                            Text(dateStr, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: FtColors.navy)),
+                            const Text(' · ', style: TextStyle(fontSize: 11, color: FtColors.muted)),
+                          ],
+                          Expanded(
+                            child: Text(
+                              map['note']?.toString() ?? (credit ? 'Repayment' : 'Udhaar'),
+                              style: const TextStyle(fontSize: 11, color: FtColors.muted),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [

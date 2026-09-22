@@ -21,7 +21,11 @@ public record KhataDto(
             String mobile,
             @NotNull @DecimalMin("1.00") BigDecimal amount,
             boolean credit,
-            String note
+            String note,
+            String entryDate
     ) {
+        public CreateRequest(String customerName, String mobile, BigDecimal amount, boolean credit, String note) {
+            this(customerName, mobile, amount, credit, note, null);
+        }
     }
 }

@@ -2,6 +2,7 @@ import 'package:digi_kadai/main.dart';
 import 'package:digi_kadai/screens/evidence_screen.dart';
 import 'package:digi_kadai/screens/login_screen.dart';
 import 'package:digi_kadai/screens/onboard_screen.dart';
+import 'package:digi_kadai/screens/transactions_screen.dart';
 import 'package:digi_kadai/theme.dart';
 import 'package:digi_kadai/widgets/format.dart';
 import 'package:digi_kadai/widgets/logo.dart';
@@ -63,19 +64,130 @@ class _HomeScreenState extends State<HomeScreen> {
     return 'Good evening';
   }
 
+  void _showMiBankDetails(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: const BoxDecoration(
+                    color: FtColors.navy,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.account_balance, color: FtColors.gold, size: 24),
+                ),
+                const SizedBox(width: 12),
+                const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('MI Bank', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                    Text('Primary Acquiring & Settlement Partner', style: TextStyle(fontSize: 12, color: FtColors.muted)),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 12),
+            _bankDetailRow('Bank Partner', 'MI Bank (Merchant Acquiring Division)'),
+            _bankDetailRow('Merchant Account', '•••• •••• 4821'),
+            _bankDetailRow('IFSC Code', 'MIBN0001892'),
+            _bankDetailRow('SoftPOS Switch', 'Mastercard / NPCI Direct Gateway'),
+            _bankDetailRow('Settlement Speed', 'T+0 Instant Auto-Sweep'),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(backgroundColor: FtColors.navy),
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.check, size: 18),
+                label: const Text('Close'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _bankDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 12, color: FtColors.muted)),
+          Flexible(
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        titleSpacing: 10,
         title: const FinTapMark(light: true, compact: true),
         actions: [
+          Center(
+            child: Tooltip(
+              message: 'MI Bank — Partner Bank',
+              child: MiBankLogo(
+                onTap: () => _showMiBankDetails(context),
+              ),
+            ),
+          ),
           IconButton(
+            visualDensity: VisualDensity.compact,
             tooltip: 'Demo evidence',
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EvidenceScreen())),
             icon: const Icon(Icons.fact_check_outlined),
           ),
-          IconButton(tooltip: 'Refresh', onPressed: _load, icon: const Icon(Icons.refresh)),
-          IconButton(tooltip: 'Sign out', onPressed: _logout, icon: const Icon(Icons.logout)),
+          PopupMenuButton<String>(
+            tooltip: 'More actions',
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              if (value == 'refresh') _load();
+              if (value == 'logout') _logout();
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'refresh',
+                child: Row(
+                  children: [
+                    Icon(Icons.refresh, size: 18),
+                    SizedBox(width: 8),
+                    Text('Refresh data'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout, size: 18),
+                    SizedBox(width: 8),
+                    Text('Sign out'),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ],
       ),
       body: data == null
@@ -102,7 +214,23 @@ class _HomeScreenState extends State<HomeScreen> {
                             _action(Icons.bar_chart, 'Insights', FtColors.purple, () => widget.onNavigate?.call(5)),
                           ],
                         ),
-                        const SectionHeading('Recent transactions'),
+                        SectionHeading(
+                          'Recent transactions',
+                          trailing: TextButton(
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const TransactionsScreen()),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text('View all', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: FtColors.teal)),
+                                SizedBox(width: 3),
+                                Icon(Icons.arrow_forward_ios, size: 10, color: FtColors.teal),
+                              ],
+                            ),
+                          ),
+                        ),
                         ..._recent(),
                         const SectionHeading('Business overview'),
                         Row(children: [
@@ -518,27 +646,97 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     return rows.map((item) {
       final map = item as Map<String, dynamic>;
-      final rail = map['rail']?.toString() ?? 'UPI';
-      final card = rail == 'CARD';
-      final kind = _transactionKind(rail, map['status']?.toString() ?? '');
+      final rail = (map['rail']?.toString() ?? 'UPI').toUpperCase();
+      final isCard = rail == 'CARD';
+      final isKhata = rail == 'KHATA';
+      final note = map['failureReason']?.toString() ?? map['note']?.toString() ?? '';
+      final isRepayment = isKhata && (note.toLowerCase().contains('repay') || map['reference']?.toString().contains('REPAY') == true);
+      final kind = _transactionKind(rail, map['status']?.toString() ?? '', note);
+      final dateStr = formatDate(map['createdAt']);
+      final amt = asNum(map['amount']);
+
+      final IconData icon;
+      final Color iconColor;
+      final Color iconBg;
+      if (isKhata) {
+        icon = isRepayment ? Icons.call_received : Icons.call_made;
+        iconColor = isRepayment ? FtColors.teal : const Color(0xFFD97706);
+        iconBg = isRepayment ? const Color(0xFFE6F4EA) : const Color(0xFFFFF8E1);
+      } else if (isCard) {
+        icon = Icons.credit_card;
+        iconColor = FtColors.navy;
+        iconBg = const Color(0xFFE3EAF5);
+      } else {
+        icon = Icons.qr_code_2;
+        iconColor = FtColors.teal;
+        iconBg = const Color(0xFFE6F4EA);
+      }
+
       return Card(
         child: ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-          leading: Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(color: card ? const Color(0xFFE3EAF5) : const Color(0xFFE6F4EA), borderRadius: BorderRadius.circular(8)),
-            child: Icon(card ? Icons.credit_card : Icons.qr_code_2, color: card ? FtColors.navy : FtColors.teal, size: 20),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => TransactionsScreen(initialRail: isKhata ? 'KHATA' : null)),
           ),
-          title: Text(map['customerLabel']?.toString() ?? 'Customer', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
-          subtitle: Text('$kind · ${map['status']}', style: const TextStyle(fontSize: 11, color: FtColors.muted)),
-          trailing: Text(inr.format(asNum(map['amount'])), style: const TextStyle(fontSize: 13, color: FtColors.teal, fontWeight: FontWeight.w700)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+          leading: Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(10)),
+            child: Icon(icon, color: iconColor, size: 20),
+          ),
+          title: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  map['customerLabel']?.toString() ?? 'Customer',
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: isKhata
+                      ? (isRepayment ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0))
+                      : const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  isKhata ? 'KHATA' : rail,
+                  style: TextStyle(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w800,
+                    color: isKhata ? (isRepayment ? FtColors.teal : const Color(0xFFD97706)) : FtColors.navy,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          subtitle: Text(
+            '$kind${dateStr.isNotEmpty ? ' · $dateStr' : ''}',
+            style: const TextStyle(fontSize: 11, color: FtColors.muted),
+          ),
+          trailing: Text(
+            '${(isKhata && !isRepayment) ? '-' : '+'}${inr.format(amt)}',
+            style: TextStyle(
+              fontSize: 13.5,
+              color: (isKhata && !isRepayment) ? const Color(0xFFD97706) : FtColors.teal,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
         ),
       );
     }).toList();
   }
 
-  String _transactionKind(String rail, String status) {
+  String _transactionKind(String rail, String status, [String note = '']) {
+    if (rail == 'KHATA') {
+      if (note.toLowerCase().contains('repay') || status.toLowerCase().contains('repay')) {
+        return 'Khata repayment';
+      }
+      return 'Khata credit (Udhaar)';
+    }
     final lower = status.toLowerCase();
     if (lower.contains('ondc')) return 'ONDC order';
     if (lower.contains('khata') || lower.contains('udhar')) return 'Khata credit';

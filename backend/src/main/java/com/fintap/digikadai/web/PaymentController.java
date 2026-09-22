@@ -43,8 +43,17 @@ public class PaymentController {
     }
 
     @GetMapping("/payments")
-    public List<PaymentDto> payments(@ModelAttribute Merchant merchant) {
-        return payments.recent(merchant);
+    public List<PaymentDto> payments(
+            @ModelAttribute Merchant merchant,
+            @RequestParam(required = false) String rail
+    ) {
+        List<PaymentDto> list = payments.recent(merchant);
+        if (rail != null && !rail.isBlank() && !"ALL".equalsIgnoreCase(rail)) {
+            return list.stream()
+                    .filter(p -> p.rail() != null && p.rail().name().equalsIgnoreCase(rail))
+                    .toList();
+        }
+        return list;
     }
 
     @GetMapping("/payments/routing")
